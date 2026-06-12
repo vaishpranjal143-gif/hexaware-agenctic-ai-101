@@ -1,0 +1,339 @@
+
+<h2 class="sr-only">Visual comparison of synchronous versus asynchronous Python programming using asyncio, including code examples, animated Gantt chart, and key differences</h2>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --s:#c0522a;--s-lt:rgba(192,82,42,.10);--s-bd:rgba(192,82,42,.22);
+  --a:#1a9068;--a-lt:rgba(26,144,104,.10);--a-bd:rgba(26,144,104,.22);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --s:#f0997b;--s-lt:rgba(240,153,123,.12);--s-bd:rgba(240,153,123,.28);
+    --a:#5dcaa5;--a-lt:rgba(93,202,165,.12);--a-bd:rgba(93,202,165,.28);
+  }
+}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:20px}
+.cs{border-color:var(--s-bd)!important;background:var(--s-lt)!important}
+.ca{border-color:var(--a-bd)!important;background:var(--a-lt)!important}
+.sec{display:flex;align-items:center;gap:12px;margin:28px 0 16px}
+.sec hr{flex:1;border:none;border-top:0.5px solid var(--color-border-tertiary);margin:0}
+.sec-num{font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary)}
+.sec-name{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.08em;text-transform:uppercase}
+.ln{white-space:pre;font-family:var(--font-mono);font-size:12.5px;line-height:1.85}
+.hl-s{background:rgba(192,82,42,.13);border-left:2px solid var(--s)}
+.hl-a{background:rgba(26,144,104,.13);border-left:2px solid var(--a)}
+.bar-track{flex:1;height:24px;background:var(--color-background-secondary);border-radius:4px;position:relative;overflow:hidden}
+.bar{position:absolute;top:0;height:100%;border-radius:4px;width:0%}
+.cmp-wrap{height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden}
+.cmp-bar{height:100%;border-radius:4px;width:0%}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-family:var(--font-mono);font-size:10px;font-weight:500;opacity:0;transition:opacity .4s}
+.run-btn{padding:8px 20px;background:var(--a);color:#fff;border:none;border-radius:var(--border-radius-md);font-family:var(--font-mono);font-size:12px;cursor:pointer;transition:opacity .2s}
+.run-btn:hover{opacity:.85}
+.run-btn:disabled{opacity:.35;cursor:not-allowed}
+</style>
+
+<div style="padding:.5rem 0">
+
+  <div style="text-align:center;padding:36px 0 28px">
+    <p style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);letter-spacing:.12em;margin:0 0 12px">Python · asyncio · concurrency</p>
+    <h1 style="font-size:52px;font-weight:500;line-height:1;margin:0 0 16px;letter-spacing:-.01em">
+      <span style="color:var(--s)">Sync</span>
+      <span style="color:var(--color-text-tertiary)"> vs </span>
+      <span style="color:var(--a)">Async</span>
+    </h1>
+    <p style="font-size:15px;color:var(--color-text-secondary);max-width:500px;margin:0 auto;line-height:1.6">
+      A visual guide to how blocking and non-blocking Python code executes differently — powered by <code style="font-family:var(--font-mono);color:var(--a);font-size:13px">asyncio</code> and the event loop.
+    </p>
+  </div>
+
+  <div class="sec"><span class="sec-num">01</span><hr><span class="sec-name">The analogy</span></div>
+
+  <div class="g2">
+    <div class="card cs">
+      <i class="ti ti-hourglass" style="font-size:26px;color:var(--s);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--s);text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px">Synchronous · blocking</p>
+      <p style="font-size:15px;font-weight:500;margin:0 0 8px;color:var(--color-text-primary)">One thing at a time</p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.65">Like a single-file queue — each person is fully served before the next one starts. The thread <strong style="color:var(--color-text-primary)">freezes</strong> while waiting for I/O (disk, network, DB). Simple to reason about, but wastes CPU cycles on waiting.</p>
+    </div>
+    <div class="card ca">
+      <i class="ti ti-arrows-shuffle" style="font-size:26px;color:var(--a);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--a);text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px">Asynchronous · non-blocking</p>
+      <p style="font-size:15px;font-weight:500;margin:0 0 8px;color:var(--color-text-primary)">Juggling multiple tasks</p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.65">Like a chef managing many dishes — when one is in the oven, you prep another. The event loop <strong style="color:var(--color-text-primary)">yields control</strong> at each <code style="font-family:var(--font-mono);color:var(--a);font-size:12px">await</code>, switching to other tasks while I/O completes.</p>
+    </div>
+  </div>
+
+  <div class="sec"><span class="sec-num">02</span><hr><span class="sec-name">Code side by side</span></div>
+
+  <div class="g2">
+    <div style="border-radius:var(--border-radius-lg);border:0.5px solid var(--s-bd);overflow:hidden">
+      <div style="background:#0d1117;padding:10px 16px;border-bottom:0.5px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:7px">
+        <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#febc2e;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#28c840;display:inline-block"></span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--s);margin-left:4px">sync_example.py</span>
+      </div>
+      <div style="background:#0d1117;padding:18px;overflow-x:auto">
+        <div class="ln"><span style="color:#ff7b72">import</span> <span style="color:#ffa657">time</span></div>
+        <div class="ln"> </div>
+        <div class="ln"><span style="color:#ff7b72">def</span> <span style="color:#d2a8ff">fetch_data</span>(name, delay):</div>
+        <div class="ln">    <span style="color:#ffa657">print</span>(<span style="color:#79c0ff">f"Starting {name}..."</span>)</div>
+        <div class="ln hl-s">    <span style="color:#ffa657">time</span>.sleep(delay)  <span style="color:#6e7681"># ← blocks thread</span></div>
+        <div class="ln">    <span style="color:#ffa657">print</span>(<span style="color:#79c0ff">f"{name} done!"</span>)</div>
+        <div class="ln"> </div>
+        <div class="ln"><span style="color:#ff7b72">def</span> <span style="color:#d2a8ff">main</span>():</div>
+        <div class="ln">    fetch_data(<span style="color:#79c0ff">"Task A"</span>, <span style="color:#79c0ff">3</span>)</div>
+        <div class="ln">    fetch_data(<span style="color:#79c0ff">"Task B"</span>, <span style="color:#79c0ff">2</span>)</div>
+        <div class="ln">    fetch_data(<span style="color:#79c0ff">"Task C"</span>, <span style="color:#79c0ff">1</span>)</div>
+        <div class="ln">    <span style="color:#6e7681"># sequential: 3+2+1 = 6s total</span></div>
+        <div class="ln"> </div>
+        <div class="ln">main()</div>
+      </div>
+      <div style="background:#0a0e17;border-top:0.5px solid rgba(255,255,255,.06);padding:14px 18px">
+        <p style="font-family:var(--font-mono);font-size:11px;color:#6e7681;margin:0 0 8px">$ python sync_example.py</p>
+        <div style="font-family:var(--font-mono);font-size:12px;line-height:1.85">
+          <div style="color:#6e7681">Starting Task A...</div>
+          <div><span style="color:#4ade80">✓ Task A done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=3s</span></div>
+          <div style="color:#6e7681">Starting Task B...</div>
+          <div><span style="color:#4ade80">✓ Task B done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=5s</span></div>
+          <div style="color:#6e7681">Starting Task C...</div>
+          <div><span style="color:#4ade80">✓ Task C done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=6s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="border-radius:var(--border-radius-lg);border:0.5px solid var(--a-bd);overflow:hidden">
+      <div style="background:#0d1117;padding:10px 16px;border-bottom:0.5px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:7px">
+        <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#febc2e;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#28c840;display:inline-block"></span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--a);margin-left:4px">async_example.py</span>
+      </div>
+      <div style="background:#0d1117;padding:18px;overflow-x:auto">
+        <div class="ln"><span style="color:#ff7b72">import</span> <span style="color:#ffa657">asyncio</span></div>
+        <div class="ln"> </div>
+        <div class="ln"><span style="color:#ff7b72">async def</span> <span style="color:#d2a8ff">fetch_data</span>(name, delay):</div>
+        <div class="ln">    <span style="color:#ffa657">print</span>(<span style="color:#79c0ff">f"Starting {name}..."</span>)</div>
+        <div class="ln hl-a">    <span style="color:#ff7b72">await</span> <span style="color:#ffa657">asyncio</span>.sleep(delay)  <span style="color:#6e7681"># ← yields</span></div>
+        <div class="ln">    <span style="color:#ffa657">print</span>(<span style="color:#79c0ff">f"{name} done!"</span>)</div>
+        <div class="ln"> </div>
+        <div class="ln"><span style="color:#ff7b72">async def</span> <span style="color:#d2a8ff">main</span>():</div>
+        <div class="ln hl-a">    <span style="color:#ff7b72">await</span> <span style="color:#ffa657">asyncio</span>.gather(</div>
+        <div class="ln hl-a">        fetch_data(<span style="color:#79c0ff">"Task A"</span>, <span style="color:#79c0ff">3</span>),</div>
+        <div class="ln hl-a">        fetch_data(<span style="color:#79c0ff">"Task B"</span>, <span style="color:#79c0ff">2</span>),</div>
+        <div class="ln hl-a">        fetch_data(<span style="color:#79c0ff">"Task C"</span>, <span style="color:#79c0ff">1</span>),</div>
+        <div class="ln hl-a">    )</div>
+        <div class="ln">    <span style="color:#6e7681"># concurrent: max(3,2,1) = 3s total</span></div>
+        <div class="ln"> </div>
+        <div class="ln"><span style="color:#ffa657">asyncio</span>.run(main())</div>
+      </div>
+      <div style="background:#0a0e17;border-top:0.5px solid rgba(255,255,255,.06);padding:14px 18px">
+        <p style="font-family:var(--font-mono);font-size:11px;color:#6e7681;margin:0 0 8px">$ python async_example.py</p>
+        <div style="font-family:var(--font-mono);font-size:12px;line-height:1.85">
+          <div style="color:#6e7681">Starting Task A...</div>
+          <div style="color:#6e7681">Starting Task B...</div>
+          <div style="color:#6e7681">Starting Task C...</div>
+          <div><span style="color:#4ade80">✓ Task C done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=1s</span></div>
+          <div><span style="color:#4ade80">✓ Task B done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=2s</span></div>
+          <div><span style="color:#4ade80">✓ Task A done!</span>&nbsp;<span style="color:#6e7681;font-size:10px">at t=3s</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="sec-num">03</span><hr><span class="sec-name">Execution simulation</span></div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 20px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.08em">Task gantt chart — shared 6-second timeline</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="resetSim()" style="padding:7px 14px;font-family:var(--font-mono);font-size:12px">↺ Reset</button>
+        <button id="runBtn" onclick="runSim()" class="run-btn">▶ Run</button>
+      </div>
+    </div>
+
+    <div class="g2" style="gap:0">
+      <div style="padding:20px;border-right:0.5px solid var(--color-border-tertiary)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <p style="font-size:14px;font-weight:500;color:var(--s);margin:0">🔴 Synchronous</p>
+          <p style="font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary);margin:0">⏱ <span id="syncT" style="color:var(--s);font-weight:500">0.0s</span></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task A (3s)</span>
+          <div class="bar-track"><div id="sA" class="bar" style="left:0%;background:var(--s)"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task B (2s)</span>
+          <div class="bar-track"><div id="sB" class="bar" style="left:50%;background:var(--s);opacity:.7"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task C (1s)</span>
+          <div class="bar-track"><div id="sC" class="bar" style="left:83.33%;background:var(--s);opacity:.5"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-left:74px;margin-top:4px">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">0s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">2s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">4s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">6s</span>
+        </div>
+        <div id="syncDone" class="badge" style="margin-top:12px;background:var(--s-lt);border:0.5px solid var(--s-bd);color:var(--s)">✓ Complete — 6.0s total</div>
+      </div>
+
+      <div style="padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <p style="font-size:14px;font-weight:500;color:var(--a);margin:0">🟢 Asynchronous</p>
+          <p style="font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary);margin:0">⏱ <span id="asyncT" style="color:var(--a);font-weight:500">0.0s</span></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task A (3s)</span>
+          <div class="bar-track"><div id="aA" class="bar" style="left:0%;background:var(--a)"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task B (2s)</span>
+          <div class="bar-track"><div id="aB" class="bar" style="left:0%;background:var(--a);opacity:.75"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);width:64px;text-align:right;flex-shrink:0">Task C (1s)</span>
+          <div class="bar-track"><div id="aC" class="bar" style="left:0%;background:var(--a);opacity:.5"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-left:74px;margin-top:4px">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">0s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">2s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">4s</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-text-tertiary)">6s</span>
+        </div>
+        <div id="asyncDone" class="badge" style="margin-top:12px;background:var(--a-lt);border:0.5px solid var(--a-bd);color:var(--a)">✓ Complete — 3.0s total (2× faster!)</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;border-top:0.5px solid var(--color-border-tertiary);display:grid;grid-template-columns:60px 1fr 44px;gap:8px 12px;align-items:center">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--s);text-align:right">SYNC</span>
+      <div class="cmp-wrap"><div id="cmpS" class="cmp-bar" style="background:var(--s)"></div></div>
+      <span id="cmpST" style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--s)">0.0s</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--a);text-align:right">ASYNC</span>
+      <div class="cmp-wrap"><div id="cmpA" class="cmp-bar" style="background:var(--a)"></div></div>
+      <span id="cmpAT" style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--a)">0.0s</span>
+    </div>
+    <div style="padding:0 20px 14px;text-align:center">
+      <div id="speedup" style="display:inline-block;padding:6px 16px;border-radius:999px;font-size:13px;color:var(--a);background:var(--a-lt);border:0.5px solid var(--a-bd);opacity:0;transition:opacity .5s">
+        ⚡ asyncio.gather() finished in half the time — 2× speedup for this I/O workload
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="sec-num">04</span><hr><span class="sec-name">Key differences</span></div>
+
+  <div class="g3" style="margin-bottom:32px">
+    <div class="card">
+      <i class="ti ti-layers-intersect" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">Execution model</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">sequential</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">concurrent</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <i class="ti ti-rotate-clockwise" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">I/O handling</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">blocks thread</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">await + yield</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <i class="ti ti-cpu" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">Threading</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">1 thread/task</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">1 thread + loop</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <i class="ti ti-target" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">Best for</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">CPU-bound tasks</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">I/O-bound tasks</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <i class="ti ti-trending-up" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">Scalability</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">linear: N × time</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">max(durations)</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <i class="ti ti-code" style="font-size:22px;color:var(--color-text-secondary);display:block;margin-bottom:12px" aria-hidden="true"></i>
+      <p style="font-size:14px;font-weight:500;margin:0 0 12px;color:var(--color-text-primary)">Key APIs</p>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Sync</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--s)">time.sleep()</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--color-text-secondary)">Async</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--a)">await / gather()</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL=6,REAL_MS=5500;
+const tasks=[
+  {id:'A',ss:0,se:3,ad:3},
+  {id:'B',ss:3,se:5,ad:2},
+  {id:'C',ss:5,se:6,ad:1}
+];
+let rafId=null,active=false;
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function update(t){
+  tasks.forEach(({id,ss,se,ad})=>{
+    const sDur=se-ss;
+    const sP=clamp((t-ss)/sDur,0,1);
+    document.getElementById('s'+id).style.width=(sP*sDur/TOTAL*100)+'%';
+    const aP=clamp(t/ad,0,1);
+    document.getElementById('a'+id).style.width=(aP*ad/TOTAL*100)+'%';
+  });
+  const st=clamp(t,0,6),at=clamp(t,0,3);
+  document.getElementById('syncT').textContent=st.toFixed(1)+'s';
+  document.getElementById('asyncT').textContent=at.toFixed(1)+'s';
+  document.getElementById('cmpS').style.width=(st/6*100)+'%';
+  document.getElementById('cmpA').style.width=(at/3*100)+'%';
+  document.getElementById('cmpST').textContent=st.toFixed(1)+'s';
+  document.getElementById('cmpAT').textContent=at.toFixed(1)+'s';
+  if(t>=3){
+    document.getElementById('asyncDone').style.opacity='1';
+    document.getElementById('speedup').style.opacity='1';
+  }
+  if(t>=6)document.getElementById('syncDone').style.opacity='1';
+}
+function runSim(){
+  if(active)return;
+  active=true;
+  document.getElementById('runBtn').disabled=true;
+  const t0=performance.now();
+  function frame(){
+    const p=Math.min((performance.now()-t0)/REAL_MS,1);
+    update(p*TOTAL);
+    if(p<1)rafId=requestAnimationFrame(frame);
+    else{update(TOTAL);active=false;}
+  }
+  rafId=requestAnimationFrame(frame);
+}
+function resetSim(){
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  active=false;
+  document.getElementById('runBtn').disabled=false;
+  tasks.forEach(({id})=>{
+    document.getElementById('s'+id).style.width='0%';
+    document.getElementById('a'+id).style.width='0%';
+  });
+  ['syncT','asyncT'].forEach(id=>document.getElementById(id).textContent='0.0s');
+  ['cmpS','cmpA'].forEach(id=>document.getElementById(id).style.width='0%');
+  ['cmpST','cmpAT'].forEach(id=>document.getElementById(id).textContent='0.0s');
+  ['syncDone','asyncDone','speedup'].forEach(id=>document.getElementById(id).style.opacity='0');
+}
+</script>
