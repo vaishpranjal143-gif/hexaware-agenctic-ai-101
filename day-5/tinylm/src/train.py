@@ -86,7 +86,7 @@ def main():
             with torch.no_grad():
                 output_ids = model.generate(
                     input_ids,
-                    max_new_tokens=32,
+                    max_new_tokens=100,
                     pad_token_id=tokenizer.eos_token_id,
                     eos_token_id=tokenizer.eos_token_id,
                     do_sample=False
