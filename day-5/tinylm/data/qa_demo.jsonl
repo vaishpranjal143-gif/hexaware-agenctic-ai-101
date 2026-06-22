@@ -1,0 +1,30 @@
+{"question": "What is AI?", "answer": "AI stands for Artificial Intelligence."}
+{"question": "What is a model?", "answer": "A model is a mathematical representation of a process."}
+{"question": "What is training?", "answer": "Training is optimizing model weights using loss gradients."}
+{"question": "What is attention?", "answer": "Attention lets the model focus on key parts of the input."}
+{"question": "What is a loss function?", "answer": "A loss function measures prediction error."}
+{"question": "What is overfitting?", "answer": "Overfitting is when a model memorizes noise in data."}
+{"question": "What is deep learning?", "answer": "Deep learning uses multi-layer neural networks."}
+{"question": "What is a GPT model?", "answer": "GPT is a decoder-only autoregressive transformer."}
+{"question": "What is a tokenizer?", "answer": "A tokenizer converts raw text into numerical IDs."}
+{"question": "What is PyTorch?", "answer": "PyTorch is an open-source deep learning framework."}
+{"question": "What is a transformer?", "answer": "A transformer is a neural network architecture for sequence modeling."}
+{"question": "What is a decoder?", "answer": "A decoder generates output sequences from encoded representations."}
+{"question": "What is a dataset?", "answer": "A dataset is a collection of data used for training or evaluation."}
+{"question": "What is a batch?", "answer": "A batch is a subset of the dataset processed together during training."}
+{"question": "What is an epoch?", "answer": "An epoch is one complete pass through the entire training dataset."}
+{"question": "What is a learning rate?", "answer": "A learning rate controls how much the model weights are updated during training."}
+{"question": "What is a gradient?", "answer": "A gradient is the derivative of the loss function with respect to model parameters."}
+{"question": "What is backpropagation?", "answer": "Backpropagation is the process of computing gradients for model training."}
+{"question": "What is a neural network?", "answer": "A neural network is a computational model inspired by the human brain."}
+{"question": "What is a hidden layer?", "answer": "A hidden layer is an intermediate layer in a neural network that processes inputs."}
+{"question": "What is a weight?", "answer": "A weight is a parameter in a neural network that is learned during training."}
+{"question": "What is a bias?", "answer": "A bias is an additional parameter in a neural network that allows the model to fit the data better."}
+{"question": "What is a ReLU activation?", "answer": "ReLU (Rectified Linear Unit) is an activation function that outputs the input if it's positive, otherwise it outputs zero."}
+{"question": "What is a softmax function?", "answer": "Softmax is an activation function that converts logits into probabilities."}
+{"question": "What is a cross-entropy loss?", "answer": "Cross-entropy loss measures the difference between predicted probabilities and true labels."}
+{"question": "What is a validation set?", "answer": "A validation set is a subset of data used to tune model hyperparameters and evaluate performance during training."}
+{"question": "What is a test set?", "answer": "A test set is a separate dataset used to evaluate the final performance of a trained model."}
+{"question": "What is transfer learning?", "answer": "Transfer learning involves using a pre-trained model on a new task to leverage learned features."}
+{"question": "What is fine-tuning?", "answer": "Fine-tuning is the process of adjusting a pre-trained model's weights on a new dataset."}
+{"question": "What is a hyperparameter?", "answer": "A hyperparameter is a configuration setting for the training process that is not learned from data."}
