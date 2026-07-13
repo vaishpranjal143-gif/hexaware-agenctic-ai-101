@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A 92-hour training program on Agentic AI and Microsoft Foundry (formerly Azure AI Foundry). It is **not a single application** — it is a chronological collection of self-contained lesson artifacts organized as `day-1/` … `day-12/`. Each day is independent; there is no shared library imported across days. `main.py` at the root is a throwaway stub, not an entry point for the lessons.
+A 92-hour training program on Agentic AI and Microsoft Foundry (formerly Azure AI Foundry). It is **not a single application** — it is a chronological collection of self-contained lesson artifacts organized as `day-01/` … `day-12/`. Each day is independent; there is no shared library imported across days. `main.py` at the root is a throwaway stub, not an entry point for the lessons.
 
-The progression is roughly: Python/async fundamentals (day 1–3) → transformers & attention from scratch (day 3–5, see `day-5/tinylm/`) → quantization/LoRA fine-tuning (day 6–7) → chatbots on Azure OpenAI (day 8–9) → RAG (day 10–11) → Semantic Kernel agents (day 12).
+The progression is roughly: Python/async fundamentals (day 1–3) → transformers & attention from scratch (day 3–5, see `day-05/tinylm/`) → quantization/LoRA fine-tuning (day 6–7) → chatbots on Azure OpenAI (day 8–9) → RAG (day 10–11) → Semantic Kernel agents (day 12).
 
 ## Environment & commands
 
@@ -25,7 +25,7 @@ AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_MODEL,
 AZURE_OPENAI_API_VERSION, AZURE_OPENAI_EMBEDDING_MODEL  (RAG only)
 ```
 
-`.env` files are gitignored. Note there are **multiple `.env` files** (root `.env`, `day-8/.env`) — scripts call `load_dotenv()` / `load_dotenv(find_dotenv())`, which resolves the nearest one. When adding a lesson, match whichever `.env` the sibling scripts expect.
+`.env` files are gitignored. Note there are **multiple `.env` files** (root `.env`, `day-08/.env`) — scripts call `load_dotenv()` / `load_dotenv(find_dotenv())`, which resolves the nearest one. When adding a lesson, match whichever `.env` the sibling scripts expect.
 
 Three different client styles appear depending on the day — match the surrounding day's style rather than unifying:
 - **Raw OpenAI SDK**: `openai.AzureOpenAI(...)` (day 8).
@@ -45,4 +45,4 @@ Three different client styles appear depending on the day — match the surround
 
 ## Local models
 
-`models/` holds downloaded HuggingFace weights (`gemma-4-e2b`, `qwen-0.5b`) used by the from-scratch/fine-tuning days. `models/` is gitignored — do not commit `.safetensors`. `day-5/tinylm/` is a minimal transformer implemented from scratch (`src/{attention,model,tokenizer,transformer,train}.py`).
+`models/` holds downloaded HuggingFace weights (`gemma-4-e2b`, `qwen-0.5b`) used by the from-scratch/fine-tuning days. `models/` is gitignored — do not commit `.safetensors`. `day-05/tinylm/` is a minimal transformer implemented from scratch (`src/{attention,model,tokenizer,transformer,train}.py`).
