@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark light" />
+<title>Semantic Kernel — Fundamentals, Planners, Memories, Connectors</title>
+<style>
+/* ================================================================
+   TOKENS
+   ================================================================ */
+:root{
+  --bg:#0a0f11; --bg-2:#0f1618; --panel:#141d1f; --panel-2:#1a2427;
+  --line:#ffffff16; --line-strong:#ffffff2b;
+  --ink:#f2f6f4; --ink-dim:#a9bab5; --ink-faint:#71827e;
+  --c-amber:#e8ab3f; --c-teal:#3fd0bb; --c-violet:#ab8cf2; --c-coral:#f2836a; --c-sky:#5cb2f2; --c-lime:#c5dd4f;
+  --fd:'Segoe UI Semibold','Segoe UI',system-ui,-apple-system,sans-serif;
+  --fb:'Iowan Old Style','Palatino Linotype',Palatino,'URW Palladio L',Georgia,serif;
+  --fm:ui-monospace,'SF Mono','IBM Plex Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --bg:#e9efec; --bg-2:#dfe7e3; --panel:#ffffff; --panel-2:#f3f7f5;
+    --line:#0a0f1118; --line-strong:#0a0f1130;
+    --ink:#111719; --ink-dim:#47605a; --ink-faint:#7b8e89;
+    --c-amber:#a8701c; --c-teal:#1c8a78; --c-violet:#6a4fc2; --c-coral:#c04f34; --c-sky:#1f6fb0; --c-lime:#6f861a;
+    color-scheme:light;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0f11; --bg-2:#0f1618; --panel:#141d1f; --panel-2:#1a2427;
+  --line:#ffffff16; --line-strong:#ffffff2b;
+  --ink:#f2f6f4; --ink-dim:#a9bab5; --ink-faint:#71827e;
+  --c-amber:#e8ab3f; --c-teal:#3fd0bb; --c-violet:#ab8cf2; --c-coral:#f2836a; --c-sky:#5cb2f2; --c-lime:#c5dd4f;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#e9efec; --bg-2:#dfe7e3; --panel:#ffffff; --panel-2:#f3f7f5;
+  --line:#0a0f1118; --line-strong:#0a0f1130;
+  --ink:#111719; --ink-dim:#47605a; --ink-faint:#7b8e89;
+  --c-amber:#a8701c; --c-teal:#1c8a78; --c-violet:#6a4fc2; --c-coral:#c04f34; --c-sky:#1f6fb0; --c-lime:#6f861a;
+  color-scheme:light;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; overflow:hidden; background:var(--bg); color:var(--ink); font-family:var(--fb); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,p,ul,ol,svg{ margin:0; }
+ul,ol{ padding:0; list-style:none; }
+button{ font-family:inherit; cursor:pointer; background:none; border:none; color:inherit; }
+:focus-visible{ outline:2px solid var(--c-teal); outline-offset:3px; }
+a{ color:inherit; }
+
+/* ambient bg (fills whole viewport, behind the scaled slide) */
+#circuit{ position:fixed; inset:0; z-index:0; opacity:.55; }
+.vignette{ position:fixed; inset:0; z-index:1; pointer-events:none; background:radial-gradient(ellipse 80% 70% at 50% 45%, transparent 35%, var(--bg) 92%); }
+
+/* ================================================================
+   FIXED 16:9 SLIDE CANVAS — scaled to the viewport
+   ================================================================ */
+.viewport{ position:fixed; inset:0; z-index:2; display:grid; place-items:center; }
+.deck{ width:1280px; height:720px; position:relative; transform:scale(var(--s,1)); transform-origin:center center; }
+.deck-inner{ position:absolute; inset:0; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--bg-2), var(--bg)); border:1px solid var(--line-strong); border-radius:18px; overflow:hidden; box-shadow:0 40px 120px -40px #000, 0 0 0 1px var(--line); }
+
+.topline{ height:4px; flex:none; background:var(--line); position:relative; overflow:hidden; }
+.topline i{ position:absolute; inset:0 auto 0 0; width:7.1%; background:linear-gradient(90deg,var(--acc,var(--c-amber)),color-mix(in srgb,var(--acc,var(--c-amber)) 35%,var(--c-sky))); transition:width .5s cubic-bezier(.16,1,.3,1), background .4s ease; box-shadow:0 0 16px 2px color-mix(in srgb,var(--acc,var(--c-amber)) 70%,transparent); }
+.frame{ flex:1; min-height:0; display:flex; }
+.rail{ flex:none; width:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:1px solid var(--line); background:color-mix(in srgb,var(--bg-2) 60%,transparent); }
+.nb{ position:relative; width:100%; padding:5px 0; display:flex; justify-content:center; }
+.nb::before{ content:""; position:absolute; left:50%; top:-50%; width:1px; height:100%; background:var(--line-strong); transform:translateX(-50%); }
+.nb:first-child::before{ display:none; }
+.node{ width:8px; height:8px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line-strong); transition:all .25s ease; position:relative; z-index:1; }
+.nb:hover .node{ border-color:var(--c-teal); transform:scale(1.35); }
+.nb.on .node{ background:var(--dot,var(--c-amber)); border-color:var(--dot,var(--c-amber)); box-shadow:0 0 0 4px color-mix(in srgb,var(--dot,var(--c-amber)) 26%,transparent),0 0 12px color-mix(in srgb,var(--dot,var(--c-amber)) 70%,transparent); animation:pulse 1.8s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.25);} }
+
+.stage{ flex:1; min-width:0; position:relative; }
+.slide{ position:absolute; inset:0; display:flex; flex-direction:column; padding:30px 46px 22px; opacity:0; transform:translateY(12px); pointer-events:none; transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1); }
+.slide.on{ opacity:1; transform:none; pointer-events:auto; }
+
+.kick{ font:700 11px/1 var(--fd); letter-spacing:.18em; text-transform:uppercase; color:var(--acc,var(--c-amber)); display:flex; align-items:center; gap:9px; flex:none; }
+.kick::before{ content:""; width:24px; height:2px; border-radius:2px; background:var(--acc,var(--c-amber)); }
+.slide h1{ font:700 30px/1.06 var(--fd); letter-spacing:.01em; margin-top:7px; text-wrap:balance; flex:none; background:linear-gradient(100deg,var(--ink) 50%,var(--acc,var(--c-amber))); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.lede{ font:italic 400 14.5px/1.42 var(--fb); color:var(--ink-dim); margin-top:6px; max-width:76ch; flex:none; }
+.body{ margin-top:16px; flex:1; min-height:0; display:flex; flex-direction:column; }
+
+/* stagger */
+.stg>*{ opacity:0; animation:rise .5s cubic-bezier(.16,1,.3,1) both; }
+.on .stg>*:nth-child(1){ animation-delay:.06s; } .on .stg>*:nth-child(2){ animation-delay:.14s; }
+.on .stg>*:nth-child(3){ animation-delay:.22s; } .on .stg>*:nth-child(4){ animation-delay:.30s; } .on .stg>*:nth-child(5){ animation-delay:.38s; }
+@keyframes rise{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
+
+/* grids */
+.g2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; flex:1; min-height:0; }
+.g2u{ display:grid; grid-template-columns:1.08fr .92fr; gap:20px; flex:1; min-height:0; }
+.g3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; flex:1; min-height:0; }
+.g5{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; flex:1; min-height:0; }
+.col{ display:flex; flex-direction:column; gap:16px; min-height:0; }
+
+/* card */
+.card{ background:linear-gradient(162deg,var(--panel),color-mix(in srgb,var(--panel) 84%,var(--a,var(--c-teal)) 7%)); border:1px solid var(--line); border-radius:14px; padding:15px 16px; position:relative; overflow:hidden; display:flex; flex-direction:column; min-height:0; transition:transform .25s cubic-bezier(.16,1,.3,1),box-shadow .25s ease,border-color .25s ease; }
+.card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--a,var(--c-teal)); box-shadow:0 0 12px 1px color-mix(in srgb,var(--a,var(--c-teal)) 80%,transparent); }
+.card:hover{ transform:translateY(-4px); border-color:color-mix(in srgb,var(--a,var(--c-teal)) 55%,var(--line-strong)); box-shadow:0 16px 34px -16px color-mix(in srgb,var(--a,var(--c-teal)) 60%,transparent); }
+.card .ico{ width:32px; height:32px; color:var(--a,var(--c-teal)); margin-bottom:6px; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--a,var(--c-teal)) 55%,transparent)); }
+.card .ico svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.card h3{ font:700 15px/1.28 var(--fd); color:var(--ink); }
+.card p{ font:400 13px/1.45 var(--fb); color:var(--ink-dim); margin-top:5px; }
+.tag{ font:700 9px/1 var(--fm); letter-spacing:.05em; text-transform:uppercase; color:var(--a,var(--c-teal)); background:color-mix(in srgb,var(--a,var(--c-teal)) 18%,transparent); padding:3px 7px; border-radius:5px; align-self:flex-start; margin-bottom:7px; }
+
+/* code snippet (grows to fill card) */
+.snip{ margin-top:11px; background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:11px 13px; font:11px/1.6 var(--fm); white-space:pre; overflow:hidden; box-shadow:inset 0 0 34px -20px color-mix(in srgb,var(--a,var(--c-teal)) 60%,transparent); }
+.snip.grow{ flex:1; }
+.snip .k{ color:var(--c-violet);} .snip .f{ color:var(--c-sky);} .snip .s{ color:var(--c-lime);} .snip .c{ color:var(--ink-faint);} .snip .d{ color:var(--c-amber);} .snip .n{ color:var(--c-coral);}
+
+/* big code panel */
+.code{ background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:13px 15px; font:12.5px/1.66 var(--fm); overflow:hidden; box-shadow:inset 0 0 44px -22px color-mix(in srgb,var(--c-teal) 40%,transparent); display:flex; flex-direction:column; }
+.code pre{ margin:0; white-space:pre; overflow:hidden; }
+.code .k{ color:var(--c-violet);} .code .f{ color:var(--c-sky);} .code .s{ color:var(--c-lime);} .code .c{ color:var(--ink-faint);} .code .d{ color:var(--c-amber);} .code .n{ color:var(--c-coral);}
+.cbar{ display:flex; align-items:center; gap:6px; margin-bottom:10px; flex:none; }
+.cbar i{ width:10px; height:10px; border-radius:50%; }
+.cbar .fn{ margin-left:8px; font:600 10.5px var(--fm); color:var(--ink-faint); letter-spacing:.03em; }
+
+/* checklist (spreads to fill) */
+.checks{ margin-top:11px; display:flex; flex-direction:column; gap:10px; }
+.checks.grow{ flex:1; justify-content:space-evenly; }
+.checks li{ display:flex; align-items:center; gap:10px; font:600 13px/1.2 var(--fb); color:var(--ink-dim); }
+.cb{ flex:none; width:20px; height:20px; border-radius:6px; display:grid; place-items:center; background:color-mix(in srgb,var(--a,var(--c-teal)) 20%,transparent); color:var(--a,var(--c-teal)); }
+.cb svg{ width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+
+/* chips */
+.chips{ margin-top:11px; display:flex; flex-wrap:wrap; gap:7px; align-content:flex-start; }
+.chips.grow{ flex:1; }
+.chip{ font:700 10.5px/1 var(--fm); letter-spacing:.02em; color:var(--ink-dim); border:1px solid var(--line-strong); border-radius:999px; padding:6px 11px; background:var(--panel-2); }
+.chip.on{ color:var(--a,var(--c-teal)); border-color:color-mix(in srgb,var(--a,var(--c-teal)) 50%,transparent); background:color-mix(in srgb,var(--a,var(--c-teal)) 12%,var(--panel-2)); }
+
+/* bars */
+.bars{ margin-top:12px; display:flex; flex-direction:column; gap:9px; }
+.bars.grow{ flex:1; justify-content:center; }
+.bar{ display:flex; align-items:center; gap:10px; font:600 11px var(--fm); color:var(--ink-dim); }
+.bar .l{ width:78px; flex:none; text-align:right; letter-spacing:.02em; }
+.bar .t{ flex:1; height:9px; background:var(--panel-2); border-radius:5px; overflow:hidden; }
+.bar .t i{ display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,color-mix(in srgb,var(--bc) 50%,transparent),var(--bc)); width:0; }
+.on .bar .t i{ animation:grow 1.1s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes grow{ to{ width:var(--w);} }
+
+/* stat */
+.stat{ margin-top:auto; display:flex; align-items:baseline; gap:10px; }
+.stat .num{ font:700 42px/1 var(--fd); color:var(--a,var(--c-teal)); text-shadow:0 0 22px color-mix(in srgb,var(--a,var(--c-teal)) 45%,transparent); font-variant-numeric:tabular-nums; }
+.stat .u{ font:400 13px var(--fb); color:var(--ink-dim); }
+
+/* sparkline */
+.spark{ margin-top:14px; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.spark svg{ width:100%; height:96px; overflow:visible; }
+.spark .ln{ fill:none; stroke:var(--a,var(--c-teal)); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 6px color-mix(in srgb,var(--a,var(--c-teal)) 55%,transparent)); stroke-dasharray:520; stroke-dashoffset:520; }
+.on .spark .ln{ animation:draw 1.6s ease forwards; }
+@keyframes draw{ to{ stroke-dashoffset:0;} }
+.spark .ar{ fill:color-mix(in srgb,var(--a,var(--c-teal)) 16%,transparent); opacity:0; }
+.on .spark .ar{ animation:fin .6s 1.2s forwards; }
+@keyframes fin{ to{ opacity:1;} }
+.spark .dt{ fill:var(--a,var(--c-teal)); }
+.slbl{ display:flex; justify-content:space-between; font:600 10px var(--fm); color:var(--ink-faint); margin-top:5px; }
+
+/* timeline */
+.tl{ margin-top:12px; display:flex; flex-direction:column; }
+.tl.grow{ flex:1; justify-content:center; }
+.tlr{ display:flex; align-items:center; gap:12px; padding:8px 0; position:relative; }
+.tlr::before{ content:""; position:absolute; left:5px; top:-8px; bottom:-8px; width:2px; background:var(--line-strong); }
+.tlr:first-child::before{ top:50%; } .tlr:last-child::before{ bottom:50%; }
+.td{ width:12px; height:12px; border-radius:50%; background:var(--panel); border:2px solid var(--a,var(--c-teal)); flex:none; position:relative; z-index:1; box-shadow:0 0 10px color-mix(in srgb,var(--a,var(--c-teal)) 60%,transparent); }
+.tlr b{ font:700 12.5px var(--fm); color:var(--ink); font-variant-numeric:tabular-nums; }
+.tlr span{ font:400 12px var(--fb); color:var(--ink-dim); }
+
+/* comparison table */
+table.cmp{ width:100%; border-collapse:collapse; font-size:13px; flex:none; }
+table.cmp th{ text-align:left; font:700 10px/1 var(--fd); letter-spacing:.08em; text-transform:uppercase; padding:0 14px 10px 0; border-bottom:1px solid var(--line-strong); }
+table.cmp th.sk{ color:var(--c-teal);} table.cmp th.mf{ color:var(--c-amber);}
+table.cmp td{ padding:11px 14px 11px 0; border-bottom:1px solid var(--line); color:var(--ink-dim); vertical-align:top; transition:background .15s ease; }
+table.cmp tr:hover td{ background:color-mix(in srgb,var(--panel) 65%,transparent); }
+table.cmp td:first-child,table.cmp th:first-child{ color:var(--ink); font-weight:700; padding-left:0; width:1%; white-space:nowrap; }
+.summ{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; flex:1; min-height:0; }
+.sc{ background:var(--panel); border:1px solid var(--line); border-radius:12px; border-top:3px solid var(--a); padding:13px 15px; display:flex; flex-direction:column; gap:5px; justify-content:center; }
+.sc .h{ font:700 10.5px var(--fm); letter-spacing:.05em; text-transform:uppercase; color:var(--a); }
+.sc b{ font:700 15px var(--fd); color:var(--ink); }
+.sc p{ font:400 12px/1.42 var(--fb); color:var(--ink-dim); }
+
+/* cover */
+.cover{ align-items:center; justify-content:center; text-align:center; padding:0 46px; }
+.cfg{ display:flex; flex-direction:column; align-items:center; z-index:2; width:100%; }
+.mark{ font:700 12px/1 var(--fm); letter-spacing:.34em; text-transform:uppercase; color:var(--c-teal); animation:rise .6s .1s both; }
+.cover h1{ font:800 66px/1 var(--fd); margin-top:14px; animation:rise .6s .22s both; background:linear-gradient(100deg,var(--c-teal),var(--ink) 38%,var(--c-amber) 88%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+.cover .lede{ font:italic 400 17px/1.5 var(--fb); max-width:62ch; text-align:center; animation:rise .6s .34s both; }
+.cmeta{ margin-top:20px; display:flex; gap:24px; font:700 11px/1 var(--fm); letter-spacing:.03em; color:var(--ink-faint); flex-wrap:wrap; justify-content:center; animation:rise .6s .46s both; }
+.cmeta b{ color:var(--c-amber); }
+.term{ margin-top:26px; width:600px; max-width:92%; text-align:left; background:var(--bg-2); border:1px solid var(--line-strong); border-radius:12px; overflow:hidden; animation:rise .6s .58s both; box-shadow:0 24px 60px -30px #000; }
+.term .b{ display:flex; align-items:center; gap:6px; padding:9px 12px; border-bottom:1px solid var(--line); }
+.term .b i{ width:11px; height:11px; border-radius:50%; }
+.term .b .fn{ margin-left:8px; font:600 10.5px var(--fm); color:var(--ink-faint); }
+.term pre{ margin:0; padding:13px 16px; font:12.5px/1.7 var(--fm); white-space:pre; }
+.term .k{ color:var(--c-violet);} .term .f{ color:var(--c-sky);} .term .s{ color:var(--c-lime);} .term .c{ color:var(--ink-faint);}
+.term .ln{ opacity:0; }
+.on .term .ln{ animation:tl .01s linear forwards; }
+.on .term .ln.l1{ animation-delay:.7s;} .on .term .ln.l2{ animation-delay:1.0s;} .on .term .ln.l3{ animation-delay:1.35s;} .on .term .ln.l4{ animation-delay:1.7s;} .on .term .ln.l5{ animation-delay:2.05s;}
+@keyframes tl{ to{ opacity:1;} }
+.cur{ display:inline-block; width:8px; height:15px; background:var(--c-teal); vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+@keyframes blink{ 50%{ opacity:0;} }
+
+/* hub diagram */
+.hub{ display:flex; align-items:center; justify-content:center; min-height:0; }
+.hub svg{ width:100%; height:100%; }
+.hl{ stroke-width:2; fill:none; stroke-dasharray:9 7; animation:dash 2.2s linear infinite; opacity:.7; }
+@keyframes dash{ to{ stroke-dashoffset:-160;} }
+.hring{ fill:none; stroke:var(--c-amber); stroke-width:1.4; opacity:.5; animation:spin 14s linear infinite; transform-origin:center; }
+@keyframes spin{ to{ transform:rotate(360deg);} }
+.hcore circle{ fill:var(--panel); stroke:var(--c-amber); stroke-width:2.5; filter:drop-shadow(0 0 16px color-mix(in srgb,var(--c-amber) 65%,transparent)); }
+.hcore text{ fill:var(--ink); font:700 21px var(--fd); }
+.hn{ animation:float 5.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+.hn circle{ fill:var(--panel); stroke-width:2.2; }
+.hn text{ fill:var(--ink); font:700 13px var(--fd); }
+.hn .sub{ fill:var(--ink-faint); font:400 10px var(--fm); }
+@keyframes float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+
+/* pipeline flow */
+.flow{ display:flex; align-items:center; justify-content:space-between; position:relative; padding:4px 4px 0; flex:none; }
+.fline{ position:absolute; left:32px; right:32px; top:38px; height:2px; background:repeating-linear-gradient(90deg,var(--line-strong) 0 8px,transparent 8px 14px); }
+.fpulse{ position:absolute; top:32px; width:14px; height:14px; border-radius:50%; background:var(--c-amber); box-shadow:0 0 14px 3px color-mix(in srgb,var(--c-amber) 70%,transparent); animation:fmove 3.6s ease-in-out infinite; }
+@keyframes fmove{ 0%{ left:0%; opacity:0;} 8%{ opacity:1;} 92%{ opacity:1;} 100%{ left:calc(100% - 14px); opacity:0;} }
+.fstep{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px; width:17%; text-align:center; }
+.fnode{ width:64px; height:64px; border-radius:50%; background:var(--panel); border:2px solid var(--sa,var(--c-teal)); display:flex; align-items:center; justify-content:center; color:var(--sa,var(--c-teal)); box-shadow:0 0 22px -6px color-mix(in srgb,var(--sa,var(--c-teal)) 60%,transparent); }
+.fnode svg{ width:28px; height:28px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.fstep b{ font:700 12px/1.3 var(--fd); color:var(--ink); }
+.fstep p{ font:400 11px/1.35 var(--fb); color:var(--ink-dim); margin-top:0; }
+.hook{ margin-top:18px; flex:1; min-height:0; display:grid; grid-template-columns:1.12fr .88fr; gap:18px; }
+
+/* orchestration */
+.orch{ display:flex; align-items:center; justify-content:center; }
+.oa{ width:58px; height:58px; border-radius:15px; background:var(--panel); border:2px solid var(--oc,var(--c-teal)); display:flex; align-items:center; justify-content:center; color:var(--oc,var(--c-teal)); position:relative; flex:none; box-shadow:0 0 20px -6px color-mix(in srgb,var(--oc,var(--c-teal)) 60%,transparent); animation:float 4.5s ease-in-out infinite; }
+.oa svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.oa span{ position:absolute; bottom:-19px; font:700 10px/1 var(--fm); color:var(--ink-faint); white-space:nowrap; }
+.oar{ width:46px; height:2px; position:relative; flex:none; background:repeating-linear-gradient(90deg,var(--line-strong) 0 6px,transparent 6px 11px); }
+.oar::after{ content:""; position:absolute; right:-1px; top:-4px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:7px solid var(--line-strong); }
+.oar i{ position:absolute; top:-4px; width:9px; height:9px; border-radius:50%; background:var(--c-amber); box-shadow:0 0 10px 2px color-mix(in srgb,var(--c-amber) 70%,transparent); animation:omove 2.4s ease-in-out infinite; }
+@keyframes omove{ 0%{ left:0; opacity:0;} 12%{ opacity:1;} 88%{ opacity:1;} 100%{ left:calc(100% - 9px); opacity:0;} }
+
+/* merge */
+.merge{ position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+.mo{ position:absolute; width:150px; height:150px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; font:700 14px var(--fd); color:var(--ink); text-align:center; border:2px solid var(--mc); background:color-mix(in srgb,var(--mc) 14%,var(--panel)); box-shadow:0 0 30px -8px color-mix(in srgb,var(--mc) 70%,transparent); }
+.mo small{ font:600 9px var(--fm); color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; }
+.ma{ --mc:var(--c-teal); animation:mA 6s ease-in-out infinite; }
+.mb{ --mc:var(--c-violet); animation:mB 6s ease-in-out infinite; }
+.mc{ --mc:var(--c-amber); width:186px; height:186px; opacity:0; animation:mC 6s ease-in-out infinite; font-size:15px; }
+@keyframes mA{ 0%,14%{ transform:translateX(-150px); opacity:1;} 40%,60%{ transform:translateX(-26px) scale(.9); opacity:0;} 90%,100%{ transform:translateX(-150px); opacity:1;} }
+@keyframes mB{ 0%,14%{ transform:translateX(150px); opacity:1;} 40%,60%{ transform:translateX(26px) scale(.9); opacity:0;} 90%,100%{ transform:translateX(150px); opacity:1;} }
+@keyframes mC{ 0%,34%{ opacity:0; transform:scale(.7);} 46%,76%{ opacity:1; transform:scale(1);} 96%,100%{ opacity:0; transform:scale(.7);} }
+
+/* takeaway rows */
+.tklist{ display:flex; flex-direction:column; gap:12px; flex:1; min-height:0; }
+.tkrow{ flex:1; display:flex; align-items:center; gap:22px; padding:0 26px; border-radius:14px; position:relative; overflow:hidden; background:linear-gradient(100deg,color-mix(in srgb,var(--panel) 80%,var(--a) 9%),var(--panel) 62%); border:1px solid var(--line); border-left:4px solid var(--a); transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease; }
+.tkrow:hover{ transform:translateX(6px); box-shadow:-8px 0 26px -14px var(--a); }
+.tknum{ font:700 48px/1 var(--fd); color:var(--a); width:54px; text-align:center; flex:none; text-shadow:0 0 22px color-mix(in srgb,var(--a) 50%,transparent); font-variant-numeric:tabular-nums; }
+.tkic{ width:40px; height:40px; color:var(--a); flex:none; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--a) 50%,transparent)); }
+.tkic svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.tktx{ flex:1; min-width:0; }
+.tktx b{ font:700 18px/1.2 var(--fd); color:var(--ink); }
+.tktx p{ font:400 14px/1.4 var(--fb); color:var(--ink-dim); margin-top:2px; }
+.tkmono{ font:600 12px var(--fm); color:var(--a); background:color-mix(in srgb,var(--a) 14%,transparent); padding:8px 13px; border-radius:8px; flex:none; }
+.tkrow .wm{ position:absolute; right:158px; top:50%; transform:translateY(-50%); width:64px; height:64px; color:var(--a); opacity:.08; pointer-events:none; }
+.tkrow .wm svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+
+/* bottom bar */
+.bbar{ flex:none; height:42px; display:flex; align-items:center; justify-content:space-between; padding:0 18px 0 72px; border-top:1px solid var(--line); font:700 10.5px/1 var(--fm); letter-spacing:.04em; color:var(--ink-faint); }
+.bb{ display:flex; gap:6px; }
+.bt{ border:1px solid var(--line-strong); border-radius:7px; padding:6px 12px; color:var(--ink-dim); transition:all .2s ease; }
+.bt:hover{ border-color:var(--acc,var(--c-teal)); color:var(--ink); box-shadow:0 0 12px -4px var(--acc,var(--c-teal)); }
+.bt:disabled{ opacity:.3; cursor:default; box-shadow:none; }
+.brand{ display:flex; align-items:center; gap:7px; }
+.brand .d{ width:8px; height:8px; border-radius:2px; background:var(--acc,var(--c-amber)); box-shadow:0 0 8px var(--acc,var(--c-amber)); }
+
+@media (prefers-reduced-motion:reduce){
+  .slide,.card,.bt{ transition:opacity .2s linear !important; transform:none !important; }
+  .stg>*,.term .ln{ animation:none !important; opacity:1 !important; }
+  .hl,.hring,.hn,.fpulse,.oa,.oar i,.ma,.mb,.mc,.nb.on .node,.bar .t i,.spark .ln,.spark .ar,.cur{ animation:none !important; }
+  .bar .t i{ width:var(--w) !important; } .spark .ln{ stroke-dashoffset:0 !important; } .spark .ar{ opacity:1 !important; }
+}
+</style>
+</head>
+<body>
+<canvas id="circuit"></canvas>
+<div class="vignette"></div>
+
+<div class="viewport">
+  <div class="deck" id="deck">
+    <div class="deck-inner">
+      <div class="topline"><i id="fill"></i></div>
+      <div class="frame">
+        <nav class="rail" id="rail" aria-label="Slides"></nav>
+        <main class="stage" id="stage"></main>
+      </div>
+      <div class="bbar">
+        <span class="brand"><span class="d"></span><span id="klabel">01 / 14</span></span>
+        <div class="bb">
+          <button class="bt" id="prev" aria-label="Previous">&larr; Prev</button>
+          <button class="bt" id="next" aria-label="Next">Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ICONS */
+const I={
+plug:`<circle cx="24" cy="30" r="4"/><path d="M14 22h20v6a10 10 0 0 1-20 0z"/><line x1="17" y1="10" x2="17" y2="22"/><line x1="31" y1="10" x2="31" y2="22"/><line x1="24" y1="38" x2="24" y2="44"/>`,
+puzzle:`<path d="M17 8h10v4a4 4 0 0 0 8 0V8h5v10h-4a4 4 0 0 0 0 8h4v10H30v-4a4 4 0 0 0-8 0v4H8V26h4a4 4 0 0 0 0-8H8V8h9z"/>`,
+server:`<rect x="8" y="9" width="32" height="9" rx="2"/><rect x="8" y="20" width="32" height="9" rx="2"/><rect x="8" y="31" width="32" height="9" rx="2"/><circle cx="14" cy="13.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="24.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="35.5" r="1.4" fill="currentColor" stroke="none"/>`,
+net:`<circle cx="24" cy="10" r="5"/><circle cx="10" cy="36" r="5"/><circle cx="38" cy="36" r="5"/><line x1="20.5" y1="14" x2="13" y2="32"/><line x1="27.5" y1="14" x2="35" y2="32"/><line x1="15" y1="36" x2="33" y2="36"/>`,
+robot:`<rect x="12" y="16" width="24" height="20" rx="5"/><circle cx="19" cy="26" r="2.4" fill="currentColor" stroke="none"/><circle cx="29" cy="26" r="2.4" fill="currentColor" stroke="none"/><line x1="24" y1="16" x2="24" y2="8"/><circle cx="24" cy="6" r="2.2"/><line x1="8" y1="24" x2="12" y2="24"/><line x1="36" y1="24" x2="40" y2="24"/><line x1="18" y1="36" x2="18" y2="41"/><line x1="30" y1="36" x2="30" y2="41"/>`,
+db:`<ellipse cx="24" cy="11" rx="15" ry="5.5"/><path d="M9 11v13c0 3 6.7 5.5 15 5.5s15-2.5 15-5.5V11"/><path d="M9 24v13c0 3 6.7 5.5 15 5.5s15-2.5 15-5.5V24"/>`,
+shield:`<path d="M24 6l15 5.5v11c0 10-6.5 17.6-15 19.5C15.5 40.1 9 32.5 9 22.5v-11z"/><path d="M17 24l5 5 10-11"/>`,
+branch:`<circle cx="14" cy="10" r="4.5"/><circle cx="14" cy="38" r="4.5"/><circle cx="34" cy="24" r="4.5"/><path d="M14 14.5v19"/><path d="M14 24c0-6 6-9 15.5-9"/>`,
+scales:`<line x1="24" y1="6" x2="24" y2="40"/><line x1="10" y1="14" x2="38" y2="14"/><path d="M10 14l-6 14a6 6 0 0 0 12 0z"/><path d="M38 14l-6 14a6 6 0 0 0 12 0z"/><line x1="16" y1="42" x2="32" y2="42"/>`,
+book:`<path d="M24 12c-4-4-10-5-16-4v27c6-1 12 0 16 4"/><path d="M24 12c4-4 10-5 16-4v27c-6-1-12 0-16 4z"/><line x1="24" y1="12" x2="24" y2="39"/>`,
+layers:`<polygon points="24,7 42,17 24,27 6,17"/><polyline points="6,25 24,35 42,25"/><polyline points="6,33 24,43 42,33"/>`,
+eye:`<path d="M5 24s7-13 19-13 19 13 19 13-7 13-19 13S5 24 5 24z"/><circle cx="24" cy="24" r="6"/>`,
+merge:`<circle cx="12" cy="12" r="5"/><circle cx="12" cy="36" r="5"/><circle cx="38" cy="24" r="5"/><path d="M16 14l18 8"/><path d="M16 34l18-8"/>`,
+compass:`<circle cx="24" cy="24" r="17"/><polygon points="30,16 20,20 18,32 28,28"/>`,
+spark:`<path d="M24 5l4 13 13 4-13 4-4 13-4-13-13-4 13-4z"/>`,
+gauge:`<path d="M8 34a16 16 0 1 1 32 0"/><line x1="24" y1="34" x2="32" y2="20"/><circle cx="24" cy="34" r="2.5" fill="currentColor" stroke="none"/>`,
+swap:`<polyline points="14,10 8,16 14,22"/><path d="M8 16h24a6 6 0 0 1 6 6"/><polyline points="34,38 40,32 34,26"/><path d="M40 32H16a6 6 0 0 1-6-6"/>`,
+msquares:`<rect x="6" y="6" width="16" height="16"/><rect x="26" y="6" width="16" height="16"/><rect x="6" y="26" width="16" height="16"/><rect x="26" y="26" width="16" height="16"/>`,
+crew:`<circle cx="15" cy="14" r="6"/><path d="M4 40c0-8 5-13 11-13s11 5 11 13"/><circle cx="35" cy="17" r="5"/><path d="M27 40c0-6.5 4.5-10.5 8-10.5"/>`,
+orbit:`<ellipse cx="24" cy="24" rx="19" ry="8"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(120 24 24)"/><circle cx="24" cy="24" r="3.4" fill="currentColor" stroke="none"/>`,
+kit:`<rect x="8" y="8" width="32" height="32" rx="7"/><path d="M18 24h12M24 18v12"/>`,
+chain:`<rect x="3" y="18" width="20" height="12" rx="6" transform="rotate(-30 13 24)"/><rect x="25" y="18" width="20" height="12" rx="6" transform="rotate(-30 35 24)"/>`,
+};
+const ic=n=>`<svg viewBox="0 0 48 48">${I[n]||''}</svg>`;
+const CHK=`<svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"/></svg>`;
+
+/* HUB */
+function hub(nodes){
+  const cx=300,cy=300,r=210; let L='',D='';
+  nodes.forEach((n,i)=>{ const a=(-90+i*(360/nodes.length))*Math.PI/180; const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+    L+=`<line class="hl" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" style="stroke:${n.color};animation-delay:${i*-0.3}s"/>`;
+    D+=`<g class="hn" style="animation-delay:${i*0.25}s"><circle cx="${x}" cy="${y}" r="47" style="stroke:${n.color}"/><text x="${x}" y="${y-2}" text-anchor="middle">${n.label}</text><text class="sub" x="${x}" y="${y+15}" text-anchor="middle">${n.sub}</text></g>`; });
+  return `<svg viewBox="0 0 600 600" role="img" aria-label="Kernel hub"><g>${L}</g><circle class="hring" cx="${cx}" cy="${cy}" r="84"/><g class="hcore"><circle cx="${cx}" cy="${cy}" r="62"/><text x="${cx}" y="${cy+7}" text-anchor="middle">Kernel</text></g>${D}</svg>`;
+}
+
+/* SLIDES */
+const S=[
+
+// 1 — cover
+{acc:'var(--c-amber)',dot:'var(--c-amber)',cls:'cover',html:`
+<div class="cfg">
+  <span class="mark">◆ from agentic ai to the kernel</span>
+  <h1>Semantic Kernel</h1>
+  <p class="lede">Microsoft's open-source middleware for wiring large language models into real
+  C#, Python, and Java apps — plugins, memory, and agents through one small core.
+  Fundamentals → Planners → Memories → Connectors.</p>
+  <div class="cmeta"><span><b>Day 11</b> Agents Development with SK &amp; AutoGen</span><span><b>Languages</b> C# · Python · Java</span><span><b>Session</b> <span id="todayDate"></span></span></div>
+  <div class="term" aria-hidden="true">
+    <div class="b"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">hello_semantic_kernel.py</span></div>
+    <pre><span class="ln l1"><span class="k">from</span> semantic_kernel <span class="k">import</span> Kernel</span>
+<span class="ln l2"><span class="k">from</span> semantic_kernel.connectors.ai.open_ai <span class="k">import</span> AzureChatCompletion</span>
+<span class="ln l3"> </span>
+<span class="ln l4">kernel = <span class="f">Kernel</span>()</span>
+<span class="ln l4">kernel.<span class="f">add_service</span>(<span class="f">AzureChatCompletion</span>())</span>
+<span class="ln l5">answer = <span class="k">await</span> kernel.<span class="f">invoke_prompt</span>(<span class="s">"Explain RAG in one line"</span>)<span class="cur"></span></span></pre>
+  </div>
+</div>`},
+
+// 2 — generative vs agentic
+{acc:'var(--c-sky)',dot:'var(--c-sky)',kick:'Two Kinds Of "AI"',title:"Generative AI creates. Agentic AI acts.",
+lede:"Knowing which one you're building changes the architecture, the guardrails, and how you test it.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-sky)"><div class="ico">${ic('spark')}</div><span class="tag">Generative AI</span><h3>Produces content</h3>
+    <p>One request → one artifact. The model's job ends when the output is written.</p>
+    <ul class="checks grow">
+      <li><span class="cb">${CHK}</span>Text &amp; code</li>
+      <li><span class="cb">${CHK}</span>Images &amp; audio</li>
+      <li><span class="cb">${CHK}</span>Video</li>
+      <li><span class="cb">${CHK}</span>No memory of "doing" anything</li>
+    </ul></div>
+  <div class="card" style="--a:var(--c-teal)"><div class="ico">${ic('compass')}</div><span class="tag">Agentic AI</span><h3>Accomplishes goals</h3>
+    <p>Given a goal, the system plans, calls tools, observes results, and loops until it's actually done.</p>
+    <ul class="checks grow">
+      <li><span class="cb">${CHK}</span>Uses tools &amp; APIs</li>
+      <li><span class="cb">${CHK}</span>Maintains memory across steps</li>
+      <li><span class="cb">${CHK}</span>Plans &amp; re-plans</li>
+      <li><span class="cb">${CHK}</span>Judged by outcome, not output</li>
+    </ul></div>
+  <div class="card" style="--a:var(--c-amber)"><div class="ico">${ic('gauge')}</div><span class="tag">Why it matters</span><h3>Different everything</h3>
+    <p>The shift is from <em>"write me an email"</em> to <em>"send the email, and follow up if they don't reply by Friday."</em></p>
+    <ul class="checks grow">
+      <li><span class="cb">${CHK}</span>Different failure modes</li>
+      <li><span class="cb">${CHK}</span>Different eval metrics</li>
+      <li><span class="cb">${CHK}</span>Different safety needs</li>
+    </ul></div>
+</div>`},
+
+// 3 — the agent harness
+{acc:'var(--c-teal)',dot:'var(--c-teal)',kick:'The Agent Harness',title:"What turns a model into an agent",
+lede:"An \"agent harness\" is the loop wrapping the LLM: perceive, plan, act, observe, repeat until the goal is met.",
+body:`<div class="flow">
+    <div class="fline"></div><div class="fpulse"></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-sky)">${ic('eye')}</div><b>1 · Perceive</b><p>Read goal + state</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-amber)">${ic('compass')}</div><b>2 · Plan</b><p>Decide next step</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-teal)">${ic('plug')}</div><b>3 · Act</b><p>Call a tool / API</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-violet)">${ic('layers')}</div><b>4 · Observe</b><p>Read the result</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-coral)">${ic('spark')}</div><b>5 · Loop / Stop</b><p>Repeat or finish</p></div>
+  </div>
+  <div class="hook">
+    <div class="code">
+      <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">harness_pseudocode.py</span></div>
+<pre><span class="k">while not</span> done:
+    action = <span class="f">plan</span>(goal, memory, tools)
+    result = <span class="f">act</span>(action)
+    memory.<span class="f">append</span>(result)
+    done = <span class="f">is_goal_met</span>(memory)
+<span class="c"># every agent framework is a version of this loop</span></pre>
+    </div>
+    <div class="card" style="--a:var(--c-teal)"><div class="ico">${ic('plug')}</div><span class="tag">In Semantic Kernel</span><h3>The kernel runs this loop for you</h3>
+      <ul class="checks grow">
+        <li><span class="cb">${CHK}</span>You write @kernel_function tools</li>
+        <li><span class="cb">${CHK}</span>You turn on FunctionChoiceBehavior.Auto()</li>
+        <li><span class="cb">${CHK}</span>The kernel plans, acts, observes, repeats</li>
+      </ul></div>
+  </div>`},
+
+// 4 — the agent framework landscape
+{acc:'var(--c-violet)',dot:'var(--c-violet)',kick:'The Landscape',title:"Five ways to build an agent in 2026",
+lede:"Different vendors, similar shape: a model + tools + a loop. Semantic Kernel is one of several serious options.",
+body:`<div class="g5 stg">
+  <div class="card" style="--a:var(--c-amber)"><div class="ico">${ic('msquares')}</div><span class="tag">Microsoft</span><h3>AutoGen</h3>
+    <p>Multi-agent conversations. Feature-frozen; folding into Agent Framework.</p>
+    <div class="snip grow">agent = <span class="f">Assistant</span>()
+proxy = <span class="f">UserProxy</span>()
+proxy.<span class="f">initiate_chat</span>(
+    agent, msg=<span class="s">"hi"</span>)</div></div>
+  <div class="card" style="--a:var(--c-coral)"><div class="ico">${ic('crew')}</div><span class="tag">Open-source</span><h3>CrewAI</h3>
+    <p>Role-based "crews" sharing a process. Popular for structured pipelines.</p>
+    <div class="snip grow">a = <span class="f">Agent</span>(
+    role=<span class="s">"Researcher"</span>)
+<span class="f">Crew</span>(
+    agents=[a]).<span class="f">kickoff</span>()</div></div>
+  <div class="card" style="--a:var(--c-sky)"><div class="ico">${ic('orbit')}</div><span class="tag">OpenAI</span><h3>Agents SDK</h3>
+    <p>Lightweight agents + handoffs + guardrails, on the Responses API.</p>
+    <div class="snip grow">agent = <span class="f">Agent</span>(
+    name=<span class="s">"Assistant"</span>)
+<span class="f">Runner</span>.<span class="f">run_sync</span>(
+    agent, query)</div></div>
+  <div class="card" style="--a:var(--c-lime)"><div class="ico">${ic('kit')}</div><span class="tag">Google</span><h3>ADK</h3>
+    <p>Agent Development Kit — model-agnostic, deployable on Vertex AI.</p>
+    <div class="snip grow">agent = <span class="f">Agent</span>(
+    model=<span class="s">"gemini-2.0"</span>)
+<span class="f">Runner</span>(agent=agent)
+    .<span class="f">run</span>(query)</div></div>
+  <div class="card" style="--a:var(--c-violet)"><div class="ico">${ic('chain')}</div><span class="tag">Open-source</span><h3>LangChain / LangGraph</h3>
+    <p>Graph-based orchestration; LangGraph adds explicit state machines.</p>
+    <div class="snip grow">g = <span class="f">StateGraph</span>(State)
+g.<span class="f">add_node</span>(
+    <span class="s">"agent"</span>, call_model)</div></div>
+</div>`},
+
+// 5 — why semantic kernel (the problem)
+{acc:'var(--c-coral)',dot:'var(--c-coral)',kick:'Where Semantic Kernel Fits',title:"LLMs are fluent. They aren't wired into your business.",
+lede:"Every framework in the landscape solves the same core problem differently. Semantic Kernel's answer: put the wiring inside a Kernel object, with enterprise concerns built in.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-coral)"><div class="ico">${ic('net')}</div><span class="tag">Without middleware</span><h3>You wire the whole loop</h3>
+    <div class="snip grow"><span class="c"># no framework — route every call</span>
+resp = client.chat.<span class="f">create</span>(
+    model=m, messages=msgs, tools=tools)
+<span class="k">for</span> call <span class="k">in</span> resp.<span class="f">tool_calls</span>:
+    name = call.function.name
+    args = json.<span class="f">loads</span>(call.args)
+    out  = REGISTRY[name](**args)  <span class="c"># by hand</span>
+    msgs.<span class="f">append</span>(<span class="f">tool_msg</span>(out))
+<span class="c"># ...then call the model AGAIN</span>
+resp = client.chat.<span class="f">create</span>(model=m,
+    messages=msgs)</div></div>
+  <div class="card" style="--a:var(--c-teal)"><div class="ico">${ic('plug')}</div><span class="tag">What SK is</span><h3>The kernel owns the loop</h3>
+    <div class="snip grow"><span class="c"># register once — kernel routes tools</span>
+kernel = <span class="f">Kernel</span>()
+kernel.<span class="f">add_service</span>(<span class="f">AzureChatCompletion</span>())
+kernel.<span class="f">add_plugin</span>(<span class="f">InventoryPlugin</span>(), <span class="s">"Inv"</span>)
+
+settings = <span class="f">PromptExecutionSettings</span>(
+    function_choice_behavior=<span class="f">Auto</span>())
+
+answer = <span class="k">await</span> kernel.<span class="f">invoke_prompt</span>(
+    <span class="s">"Any red shirts left in stock?"</span>,
+    arguments=<span class="f">KernelArguments</span>(settings))</div></div>
+  <div class="card" style="--a:var(--c-amber)"><div class="ico">${ic('shield')}</div><span class="tag">Why Microsoft built it</span><h3>Enterprise-grade, by default</h3>
+    <p>The production concerns are first-class — not bolted on after the prototype works.</p>
+    <ul class="checks grow">
+      <li><span class="cb">${CHK}</span>Telemetry &amp; tracing built in</li>
+      <li><span class="cb">${CHK}</span>Filters / hooks on every call</li>
+      <li><span class="cb">${CHK}</span>Dependency injection</li>
+      <li><span class="cb">${CHK}</span>Native function calling</li>
+      <li><span class="cb">${CHK}</span>Responsible-AI guardrails</li>
+    </ul></div>
+</div>`},
+
+// 6 — FUNDAMENTALS: kernel as hub
+{acc:'var(--c-amber)',dot:'var(--c-amber)',kick:'Fundamentals',title:"The kernel: a hub, not a model",
+lede:"Every service and plugin registers with one Kernel — and nearly every component in the SDK reaches through it.",
+body:`<div class="g2u">
+  <div class="col">
+    <div class="code" style="flex:1">
+      <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">01-fundamentals/_setup.py</span></div>
+<pre><span class="k">from</span> semantic_kernel <span class="k">import</span> Kernel
+<span class="k">from</span> semantic_kernel.connectors.ai.open_ai <span class="k">import</span> AzureChatCompletion
+
+<span class="k">def</span> <span class="f">build_kernel</span>():
+    kernel = <span class="f">Kernel</span>()
+
+    <span class="c"># 1 · services — the AI + infra it needs</span>
+    kernel.<span class="f">add_service</span>(<span class="f">azure_chat</span>())
+
+    <span class="c"># 2 · plugins — how it touches your world</span>
+    <span class="c"># kernel.add_plugin(TimePlugin(), "Time")</span>
+
+    <span class="k">return</span> kernel
+<span class="c"># one place to configure AND observe it all</span></pre>
+    </div>
+    <div class="bars">
+      <div class="bar" style="--bc:var(--c-teal)"><span class="l">Services</span><span class="t"><i style="--w:72%"></i></span></div>
+      <div class="bar" style="--bc:var(--c-amber)"><span class="l">Plugins</span><span class="t"><i style="--w:92%"></i></span></div>
+      <div class="bar" style="--bc:var(--c-violet)"><span class="l">Filters</span><span class="t"><i style="--w:55%"></i></span></div>
+    </div>
+  </div>
+  <div class="hub" id="archHub"></div>
+</div>`},
+
+// 7 — FUNDAMENTALS: plugins & functions
+{acc:'var(--c-amber)',dot:'var(--c-amber)',kick:'Fundamentals',title:"Plugins turn a talker into a doer",
+lede:"The model requests a function by name, the kernel marshals the call, the result flows back into the conversation.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-teal)"><div class="ico">${ic('puzzle')}</div><span class="tag">Native code</span><h3>@kernel_function</h3>
+    <p>Wrap an existing method with a description the model reads to decide when to call it.</p>
+    <div class="snip grow"><span class="k">class</span> <span class="f">MathPlugin</span>:
+    <span class="d">@kernel_function</span>(
+        description=<span class="s">"Add two numbers"</span>)
+    <span class="k">def</span> <span class="f">add</span>(
+        self, a: <span class="n">int</span>, b: <span class="n">int</span>) -> <span class="n">int</span>:
+        <span class="k">return</span> a + b</div></div>
+  <div class="card" style="--a:var(--c-sky)"><div class="ico">${ic('server')}</div><span class="tag">OpenAPI spec</span><h3>Share across languages</h3>
+    <p>Import a REST API's spec once — reusable from C#, Python, or Java without rewrites.</p>
+    <div class="snip grow">kernel.<span class="f">add_plugin_from_openapi</span>(
+    plugin_name=<span class="s">"Billing"</span>,
+    openapi_document_path=(
+        <span class="s">"billing.yaml"</span>),
+)
+<span class="c"># every endpoint becomes</span>
+<span class="c"># a callable tool</span></div></div>
+  <div class="card" style="--a:var(--c-violet)"><div class="ico">${ic('net')}</div><span class="tag">MCP server</span><h3>Both directions</h3>
+    <p>Consume tools from an MCP server — or expose your whole Kernel <em>as</em> one.</p>
+    <div class="snip grow"><span class="c"># expose your kernel AS a server</span>
+server = kernel.<span class="f">as_mcp_server</span>(
+    server_name=<span class="s">"sk"</span>)
+
+<span class="c"># ...or consume one</span>
+kernel.<span class="f">add_plugin</span>(
+    <span class="f">MCPStdioPlugin</span>(...))</div></div>
+</div>`},
+
+// 8 — FUNDAMENTALS: five steps + agent identity
+{acc:'var(--c-amber)',dot:'var(--c-amber)',kick:'Fundamentals',title:"One prompt, five steps — plus an identity on top",
+lede:"Every invocation passes through the same five kernel steps. An agent is just a kernel with a name and instructions layered over that.",
+body:`<div class="flow">
+    <div class="fline"></div><div class="fpulse"></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-amber)">${ic('compass')}</div><b>1 · Select</b><p>Best AI service</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-coral)">${ic('layers')}</div><b>2 · Build</b><p>Render template</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-teal)">${ic('plug')}</div><b>3 · Send</b><p>Dispatch to model</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-sky)">${ic('eye')}</div><b>4 · Parse</b><p>Match tool calls</p></div>
+    <div class="fstep"><div class="fnode" style="--sa:var(--c-violet)">${ic('spark')}</div><b>5 · Return</b><p>Back to your app</p></div>
+  </div>
+  <div class="hook">
+    <div class="code">
+      <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">01-fundamentals/05_agent_identity.py</span></div>
+<pre>agent = <span class="f">ChatCompletionAgent</span>(
+    service=<span class="f">azure_chat</span>(),
+    name=<span class="s">"Support"</span>,
+    instructions=<span class="s">"You are a friendly support rep."</span>,
+)
+reply = <span class="k">await</span> agent.<span class="f">get_response</span>(
+    messages=<span class="s">"Where is my order?"</span>)</pre>
+    </div>
+    <div class="card" style="--a:var(--c-violet)"><div class="ico">${ic('robot')}</div><span class="tag">Where you hook in</span><h3>Same kernel, persistent identity</h3>
+      <p>An agent adds a name, instructions, and a conversation thread on top of the same five-step kernel.</p>
+      <ul class="checks grow">
+        <li><span class="cb">${CHK}</span>Prompt-render filter</li>
+        <li><span class="cb">${CHK}</span>Function-invocation filter</li>
+        <li><span class="cb">${CHK}</span>Auto-function-call filter</li>
+      </ul></div>
+  </div>`},
+
+// 9 — PLANNERS
+{acc:'var(--c-coral)',dot:'var(--c-coral)',kick:'Planners',title:"Planning isn't a separate step anymore — it's Auto()",
+lede:"Early SK shipped SequentialPlanner / ActionPlanner classes that asked the model to output a JSON plan first. They're gone. Auto function-calling IS the planner now.",
+body:`<div class="g2u">
+  <div class="code">
+    <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">02-planners/02_multi_step_planning.py</span></div>
+<pre><span class="k">class</span> <span class="f">CurrencyPlugin</span>:
+    <span class="d">@kernel_function</span>(description=<span class="s">"Get FX rate"</span>)
+    <span class="k">def</span> <span class="f">get_rate</span>(self, a: <span class="n">str</span>, b: <span class="n">str</span>) -> <span class="n">float</span>: ...
+
+    <span class="d">@kernel_function</span>(description=<span class="s">"Convert with a rate"</span>)
+    <span class="k">def</span> <span class="f">convert</span>(self, amt: <span class="n">float</span>, rate: <span class="n">float</span>) -> <span class="n">float</span>: ...
+
+settings.function_choice_behavior = <span class="f">Auto</span>()
+answer = <span class="k">await</span> kernel.<span class="f">invoke_prompt</span>(
+    <span class="s">"I have 100 USD. How many INR is that?"</span>,
+    arguments=<span class="f">KernelArguments</span>(settings=settings))
+<span class="c"># model chains get_rate() -> convert() on its own</span></pre>
+  </div>
+  <div class="col">
+    <div class="card" style="--a:var(--c-ink-faint,var(--c-coral));flex:1"><div class="ico">${ic('branch')}</div><span class="tag">Old way (removed)</span><h3>Explicit planner classes</h3>
+      <div class="snip grow"><span class="c"># pre-1.0 SK only — won't run today</span>
+<span class="k">from</span> semantic_kernel.planning <span class="k">import</span> (
+    SequentialPlanner,
+)
+<span class="c"># asked the model for a JSON "plan"</span>
+<span class="c"># before executing anything</span></div></div>
+    <div class="card" style="--a:var(--c-teal);flex:1;justify-content:center"><div class="ico">${ic('compass')}</div><h3>New way</h3>
+      <ul class="checks grow">
+        <li><span class="cb">${CHK}</span>One flag: FunctionChoiceBehavior.Auto()</li>
+        <li><span class="cb">${CHK}</span>Model chains as many calls as it needs</li>
+        <li><span class="cb">${CHK}</span>No separate "planning" API to learn</li>
+      </ul></div>
+  </div>
+</div>`},
+
+// 10 — MEMORIES
+{acc:'var(--c-lime)',dot:'var(--c-lime)',kick:'Memories',title:"Grounding: plugins that fetch, not just act",
+lede:"Real vector memory in Semantic Kernel: embed, store in a vector collection, search by similarity, then hand the result to the model as a plugin.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-lime)"><div class="ico">${ic('db')}</div><span class="tag">Vector store</span><h3>InMemoryCollection + VectorStoreField</h3>
+    <div class="snip grow"><span class="d">@vectorstoremodel</span>(collection_name=<span class="s">"facts"</span>)
+<span class="k">class</span> <span class="f">Fact</span>:
+    fact_id: Annotated[<span class="n">int</span>,
+        <span class="f">VectorStoreField</span>(<span class="s">"key"</span>)]
+    content: Annotated[<span class="n">str</span>,
+        <span class="f">VectorStoreField</span>(<span class="s">"data"</span>)]
+    embedding: Annotated[<span class="n">list</span>[<span class="n">float</span>],
+        <span class="f">VectorStoreField</span>(<span class="s">"vector"</span>)]</div></div>
+  <div class="card" style="--a:var(--c-sky)"><div class="ico">${ic('swap')}</div><span class="tag">Vector connectors</span><h3>Swap backends freely</h3>
+    <p>One connector interface across every major store — change providers without touching retrieval logic.</p>
+    <div class="chips grow"><span class="chip on">Azure AI Search</span><span class="chip on">Qdrant</span><span class="chip on">Redis</span><span class="chip on">Chroma</span><span class="chip on">Weaviate</span><span class="chip on">Postgres</span><span class="chip on">Pinecone</span><span class="chip on">Mongo</span><span class="chip">In-Memory</span></div></div>
+  <div class="card" style="--a:var(--c-coral)"><div class="ico">${ic('merge')}</div><span class="tag">Memory as a plugin</span><h3>The model calls it like any tool</h3>
+    <div class="snip grow"><span class="d">@kernel_function</span>(description=
+    <span class="s">"Search facts relevant to a question"</span>)
+<span class="k">async def</span> <span class="f">search</span>(self, query: <span class="n">str</span>) -> <span class="n">str</span>:
+    v = <span class="k">await</span> embedder.<span class="f">generate_embeddings</span>(
+        [query])
+    hits = <span class="k">await</span> collection.<span class="f">search</span>(
+        vector=v[0], top=<span class="n">1</span>)
+    <span class="k">return</span> ...</div></div>
+</div>`},
+
+// 11 — CONNECTORS
+{acc:'var(--c-sky)',dot:'var(--c-sky)',kick:'Connectors',title:"One kernel API, many AI backends",
+lede:"A connector is the adapter between Kernel.add_service() and one provider's SDK. Swap the connector, keep every plugin and prompt unchanged.",
+body:`<div class="g2u">
+  <div class="code">
+    <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">04-connectors/03_swap_connector.py</span></div>
+<pre>USE_OPENAI = <span class="n">False</span>  <span class="c"># flip this, nothing else changes</span>
+
+<span class="k">def</span> <span class="f">build_service</span>():
+    <span class="k">if</span> USE_OPENAI:
+        <span class="k">return</span> <span class="f">OpenAIChatCompletion</span>(
+            ai_model_id=<span class="s">"gpt-4o-mini"</span>,
+            api_key=getenv(<span class="s">"OPENAI_API_KEY"</span>))
+    <span class="k">return</span> <span class="f">AzureChatCompletion</span>(
+        deployment_name=getenv(<span class="s">"AZURE_OPENAI_MODEL"</span>),
+        endpoint=getenv(<span class="s">"AZURE_OPENAI_ENDPOINT"</span>),
+        api_key=getenv(<span class="s">"AZURE_OPENAI_API_KEY"</span>))</pre>
+  </div>
+  <div class="col">
+    <div class="card" style="--a:var(--c-sky);flex:1"><div class="ico">${ic('net')}</div><span class="tag">Connector types</span><h3>Chat &amp; Embedding</h3>
+      <p>Every provider below ships both kinds — the kernel calls them through the same interface.</p>
+      <div class="chips grow"><span class="chip on">Azure OpenAI</span><span class="chip on">OpenAI</span><span class="chip on">Hugging Face</span><span class="chip on">Ollama</span><span class="chip on">Google</span><span class="chip on">Mistral AI</span></div></div>
+    <div class="card" style="--a:var(--c-amber);flex:1;justify-content:center"><div class="ico">${ic('scales')}</div><h3>The point</h3>
+      <p>Everything in fundamentals / planners / memories is written against the <b>kernel's</b> API, not against Azure directly.</p></div>
+  </div>
+</div>`},
+
+// 12 — enterprise guardrails
+{acc:'var(--c-teal)',dot:'var(--c-teal)',kick:'Enterprise Guardrails',title:"Filters, telemetry, and a stability promise",
+lede:"The part most tutorials skip — and the part that gets an SDK approved for production.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-teal)"><div class="ico">${ic('shield')}</div><span class="tag">Filters</span><h3>Central interception</h3>
+    <p>Log, redact, rate-limit, or block — in one place, on every call.</p>
+    <div class="snip grow"><span class="k">class</span> <span class="f">PiiFilter</span>:
+    <span class="k">async def</span> <span class="f">on_invoke</span>(
+        self, ctx, next):
+        ctx.arguments = <span class="f">redact</span>(
+            ctx.arguments)
+        <span class="k">await</span> <span class="f">next</span>(ctx)
+        ctx.result = <span class="f">scrub</span>(ctx.result)
+
+<span class="c"># register on the kernel</span>
+kernel.filters.<span class="f">add</span>(<span class="f">PiiFilter</span>())</div></div>
+  <div class="card" style="--a:var(--c-sky)"><div class="ico">${ic('gauge')}</div><span class="tag">Telemetry</span><h3>Observable by default</h3>
+    <p>OpenTelemetry tracing ships in the SDK — token usage and latency, no extra wiring.</p>
+    <div class="spark">
+      <svg viewBox="0 0 240 64" preserveAspectRatio="none">
+        <path class="ar" d="M0,50 L24,42 L48,46 L72,30 L96,34 L120,20 L144,26 L168,12 L192,18 L216,8 L240,14 L240,64 L0,64 Z"/>
+        <path class="ln" d="M0,50 L24,42 L48,46 L72,30 L96,34 L120,20 L144,26 L168,12 L192,18 L216,8 L240,14"/>
+        <circle class="dt" cx="216" cy="8" r="3.6"/>
+      </svg>
+      <div class="slbl"><span>latency ↓</span><span>tokens tracked live</span></div>
+    </div></div>
+  <div class="card" style="--a:var(--c-amber)"><div class="ico">${ic('spark')}</div><span class="tag">Version discipline</span><h3>1.0+, all three languages</h3>
+    <p>Non-breaking core API, active incremental releases through mid-2026.</p>
+    <div class="tl grow">
+      <div class="tlr"><span class="td"></span><b>.NET 1.77</b><span>May 2026</span></div>
+      <div class="tlr"><span class="td"></span><b>Python 1.43</b><span>Jun 2026</span></div>
+      <div class="tlr"><span class="td"></span><b>Java 1.x</b><span>GA · non-breaking</span></div>
+    </div></div>
+</div>`},
+
+// 13 — the 2026 turn: MAF
+{acc:'var(--c-amber)',dot:'var(--c-amber)',kick:'The 2026 Turn',title:"AutoGen stopped, Semantic Kernel merged: meet Agent Framework",
+lede:"Microsoft froze new features on AutoGen and folded it together with Semantic Kernel's enterprise engine into one framework — Microsoft Agent Framework — built by the same teams.",
+body:`<div class="g2">
+  <div class="merge">
+    <div class="mo ma">Semantic<br/>Kernel<br/><small>enterprise features</small></div>
+    <div class="mo mb">AutoGen<br/><small>feature-frozen</small></div>
+    <div class="mo mc">Microsoft<br/>Agent<br/>Framework</div>
+  </div>
+  <div class="col stg">
+    <div class="card" style="--a:var(--c-teal);flex:1;justify-content:center"><span class="tag">From Semantic Kernel</span><p>Session state, type safety, filters, telemetry, and broad model &amp; embedding connector support.</p></div>
+    <div class="card" style="--a:var(--c-violet);flex:1;justify-content:center"><span class="tag">From AutoGen</span><p>Low-ceremony abstractions for single- and multi-agent conversation patterns — Day 12's territory.</p></div>
+    <div class="card" style="--a:var(--c-amber)"><span class="tag">New: graph workflows</span><p>Typed, checkpointed multi-agent execution paths.</p>
+      <div class="tl">
+        <div class="tlr" style="--a:var(--c-violet)"><span class="td"></span><b>Feb 2026</b><span>Release Candidate</span></div>
+        <div class="tlr" style="--a:var(--c-amber)"><span class="td"></span><b>Apr 2026</b><span>1.0 GA — stable APIs</span></div>
+      </div></div>
+  </div>
+</div>`},
+
+// 14 — SK vs MAF
+{acc:'var(--c-coral)',dot:'var(--c-coral)',kick:'Choosing Between Them',title:"Semantic Kernel vs. Microsoft Agent Framework",
+body:`<table class="cmp">
+  <tr><th>&nbsp;</th><th class="sk">Semantic Kernel</th><th class="mf">Agent Framework</th></tr>
+  <tr><td>Role</td><td>Mature, still-supported SDK</td><td>Direct successor — where new investment goes</td></tr>
+  <tr><td>Core unit</td><td>Kernel + plugins + agents</td><td>Agent + graph-based Workflow</td></tr>
+  <tr><td>Multi-agent control</td><td>Sequential / concurrent / group chat</td><td>Same, plus explicit typed workflow graphs</td></tr>
+  <tr><td>Long-running state</td><td>Per-agent thread/session objects</td><td>Unified session + checkpointing</td></tr>
+  <tr><td>Best fit today</td><td>Existing SK apps; mid-migration teams</td><td>New agent projects, mid-2026 onward</td></tr>
+</table>
+<div class="summ stg">
+  <div class="sc" style="--a:var(--c-teal)"><span class="h">Keep Semantic Kernel</span><b>You ship it already</b><p>Fully supported — no forced migration, non-breaking releases continue.</p></div>
+  <div class="sc" style="--a:var(--c-amber)"><span class="h">Start with MAF</span><b>Greenfield agents</b><p>New multi-agent work in mid-2026 defaults to Agent Framework.</p></div>
+  <div class="sc" style="--a:var(--c-violet)"><span class="h">Migrating?</span><b>Official guides</b><p>"Migrate from Semantic Kernel" &amp; "Migrate from AutoGen" on MS Learn.</p></div>
+</div>`},
+
+// 15 — agent framework hello world
+{acc:'var(--c-sky)',dot:'var(--c-sky)',kick:'In Practice',title:"Agent Framework's own “hello world”",
+lede:"Deliberately the same shape as SK's kernel-plus-service pattern — migration should feel incremental.",
+body:`<div class="g2u">
+  <div class="code">
+    <div class="cbar"><i style="background:var(--c-coral)"></i><i style="background:var(--c-amber)"></i><i style="background:var(--c-lime)"></i><span class="fn">hello_agent.py</span></div>
+<pre><span class="c"># pip install agent-framework</span>
+<span class="k">from</span> agent_framework.foundry <span class="k">import</span> FoundryChatClient
+<span class="k">from</span> azure.identity <span class="k">import</span> AzureCliCredential
+
+client = <span class="f">FoundryChatClient</span>(
+    project_endpoint=<span class="s">"https://&lt;foundry&gt;.../projects/p"</span>,
+    model=<span class="s">"gpt-5.4-mini"</span>,
+    credential=<span class="f">AzureCliCredential</span>(),
+)
+agent = client.<span class="f">as_agent</span>(
+    name=<span class="s">"HelloAgent"</span>,
+    instructions=<span class="s">"You are a friendly assistant."</span>,
+)
+result = <span class="k">await</span> agent.<span class="f">run</span>(<span class="s">"Largest city in France?"</span>)</pre>
+  </div>
+  <div class="col">
+    <div class="card" style="--a:var(--c-sky);flex:1"><div class="ico">${ic('branch')}</div><h3>Agent vs. Workflow</h3>
+      <p>An <b>agent</b> for open-ended tool use; a <b>workflow</b> once steps are fixed and multiple agents must coordinate.</p>
+      <div class="bars grow">
+        <div class="bar" style="--bc:var(--c-sky)"><span class="l">Agent</span><span class="t"><i style="--w:82%"></i></span></div>
+        <div class="bar" style="--bc:var(--c-amber)"><span class="l">Workflow</span><span class="t"><i style="--w:60%"></i></span></div>
+      </div></div>
+    <div class="card" style="--a:var(--c-amber);flex:1;justify-content:center"><div class="ico">${ic('scales')}</div><h3>The house rule</h3>
+      <p><em>"If you can write a function to handle the task, do that instead of using an AI agent."</em></p></div>
+  </div>
+</div>`},
+
+// 16 — where this sits in the course
+{acc:'var(--c-lime)',dot:'var(--c-lime)',kick:'Where This Sits In The Course',title:"You already built the pattern SK formalizes",
+lede:"This morning: rag-text → rag-pdf → rag-vector. This afternoon: the same shape, formalized as Semantic Kernel primitives.",
+body:`<div class="g3 stg">
+  <div class="card" style="--a:var(--c-lime)"><div class="ico">${ic('merge')}</div><span class="tag">rag-vector · retrieve()</span><h3>&rarr; 03-memories/03_memory_as_plugin.py</h3>
+    <p>Chunk, embed, search — now a real SK vector store wrapped as a plugin.</p>
+    <div class="snip grow"><span class="c"># your course code, this morning</span>
+docs = retriever.<span class="f">invoke</span>(q)
+
+<span class="c"># → in Semantic Kernel, this afternoon</span>
+<span class="d">@kernel_function</span>
+<span class="k">async def</span> <span class="f">search</span>(q: <span class="n">str</span>) -> <span class="n">str</span>:
+    <span class="k">return</span> <span class="k">await</span> <span class="f">vector_search</span>(q)</div></div>
+  <div class="card" style="--a:var(--c-violet)"><div class="ico">${ic('robot')}</div><span class="tag">chatbot.py · system prompt</span><h3>&rarr; agent instructions</h3>
+    <p>A fixed instruction + streamed calls is exactly what an agent wraps.</p>
+    <div class="snip grow">agent = <span class="f">ChatCompletionAgent</span>(
+    service=<span class="f">azure_chat</span>(),
+    instructions=SYSTEM_PROMPT,
+)
+<span class="c"># same streaming, now stateful</span></div></div>
+  <div class="card" style="--a:var(--c-coral)"><div class="ico">${ic('eye')}</div><span class="tag">evaluate.py · metrics</span><h3>&rarr; filters / telemetry</h3>
+    <p>A separate script here; wired into the pipeline as filters in SK.</p>
+    <ul class="checks grow">
+      <li><span class="cb">${CHK}</span>precision@k → filter log</li>
+      <li><span class="cb">${CHK}</span>latency → OTel trace</li>
+      <li><span class="cb">${CHK}</span>tokens → telemetry</li>
+    </ul></div>
+</div>`},
+
+// 17 — takeaways
+{acc:'var(--c-violet)',dot:'var(--c-violet)',kick:'Takeaways',title:"Five things to remember",
+body:`<div class="tklist stg">
+  <div class="tkrow" style="--a:var(--c-amber)"><span class="tknum">1</span><span class="tkic">${ic('layers')}</span><div class="tktx"><b>Fundamentals — the kernel is a container, not a model</b><p>Services (the AI) + plugins (your world) register on one Kernel; @kernel_function marks a method as callable.</p></div><div class="wm">${ic('layers')}</div><span class="tkmono">Kernel()</span></div>
+  <div class="tkrow" style="--a:var(--c-coral)"><span class="tknum">2</span><span class="tkic">${ic('compass')}</span><div class="tktx"><b>Planners — auto function-calling IS the planner</b><p>Classic Planner classes are gone. Turn on Auto() and the model chains as many tool calls as the question needs.</p></div><div class="wm">${ic('compass')}</div><span class="tkmono">FunctionChoiceBehavior.Auto()</span></div>
+  <div class="tkrow" style="--a:var(--c-lime)"><span class="tknum">3</span><span class="tkic">${ic('db')}</span><div class="tktx"><b>Memories — a real vector store, wrapped as a plugin</b><p>Embed, upsert, search by similarity — then let the model call it like any other tool to ground its answer.</p></div><div class="wm">${ic('db')}</div><span class="tkmono">InMemoryCollection</span></div>
+  <div class="tkrow" style="--a:var(--c-sky)"><span class="tknum">4</span><span class="tkic">${ic('swap')}</span><div class="tktx"><b>Connectors — one kernel API, many AI backends</b><p>Swap Azure OpenAI for OpenAI, Hugging Face, Ollama, or Google — every plugin and prompt keeps working.</p></div><div class="wm">${ic('swap')}</div><span class="tkmono">add_service()</span></div>
+  <div class="tkrow" style="--a:var(--c-violet)"><span class="tknum">5</span><span class="tkic">${ic('spark')}</span><div class="tktx"><b>The successor is already here</b><p>AutoGen is feature-frozen; Microsoft Agent Framework merges it with Semantic Kernel for new agent projects.</p></div><div class="wm">${ic('spark')}</div><span class="tkmono">agent-framework</span></div>
+</div>`},
+
+// 18 — go further
+{acc:'var(--c-teal)',dot:'var(--c-teal)',kick:'Go Further',title:"Primary sources for this deck",
+body:`<div class="g2">
+  <div class="col stg">
+    <div class="card" style="--a:var(--c-teal);flex:1;justify-content:center"><div class="ico">${ic('book')}</div><h3>Semantic Kernel</h3>
+      <p><a href="https://learn.microsoft.com/en-us/semantic-kernel/overview/" style="color:var(--c-teal)">learn.microsoft.com/semantic-kernel/overview</a><br/>
+      <a href="https://github.com/microsoft/semantic-kernel" style="color:var(--c-teal)">github.com/microsoft/semantic-kernel</a></p></div>
+    <div class="card" style="--a:var(--c-amber);flex:1;justify-content:center"><div class="ico">${ic('spark')}</div><h3>Microsoft Agent Framework</h3>
+      <p><a href="https://learn.microsoft.com/en-us/agent-framework/overview/" style="color:var(--c-amber)">learn.microsoft.com/agent-framework/overview</a><br/>
+      <a href="https://devblogs.microsoft.com/agent-framework/" style="color:var(--c-amber)">devblogs.microsoft.com/agent-framework</a></p></div>
+    <div class="card" style="--a:var(--c-violet);flex:1;justify-content:center"><div class="ico">${ic('net')}</div><h3>The Wider Landscape</h3>
+      <p>CrewAI · OpenAI Agents SDK · Google ADK · LangChain / LangGraph — worth a look before you commit to one.</p></div>
+  </div>
+  <div class="card" style="--a:var(--c-coral);justify-content:center"><div class="ico">${ic('compass')}</div><span class="tag">Next in this course</span><h3>Run the code, in order</h3>
+    <p><code>day-11/sematic-kernel/01-fundamentals</code> → <code>02-planners</code> → <code>03-memories</code> → <code>04-connectors</code>. Every file is one idea, ≤20 lines, runnable against your own <code>.env</code>. Day 12: AutoGen.</p>
+    <div class="chips"><span class="chip on">01-fundamentals</span><span class="chip on">02-planners</span><span class="chip on">03-memories</span><span class="chip on">04-connectors</span></div></div>
+</div>`},
+
+];
+
+/* RENDER */
+const stage=document.getElementById('stage'),rail=document.getElementById('rail');
+const klabel=document.getElementById('klabel'),fill=document.getElementById('fill');
+const prev=document.getElementById('prev'),next=document.getElementById('next');
+let cur=0;
+S.forEach((s,i)=>{
+  const el=document.createElement('section');
+  el.className='slide'+(s.cls?' '+s.cls:''); el.style.setProperty('--acc',s.acc);
+  el.setAttribute('role','group'); el.setAttribute('aria-label',(i+1)+' of '+S.length);
+  el.innerHTML = s.cls==='cover' ? s.html : `<span class="kick">${s.kick}</span><h1>${s.title}</h1>${s.lede?`<p class="lede">${s.lede}</p>`:''}<div class="body">${s.body}</div>`;
+  stage.appendChild(el);
+  const b=document.createElement('button'); b.className='nb'; b.style.setProperty('--dot',s.dot);
+  b.innerHTML='<span class="node"></span>'; b.setAttribute('aria-label','Slide '+(i+1));
+  b.addEventListener('click',()=>go(i)); rail.appendChild(b);
+});
+const ah=document.getElementById('archHub');
+if(ah) ah.innerHTML=hub([
+  {label:'Services',sub:'chat · embed',color:'var(--c-teal)'},
+  {label:'Plugins',sub:'native · api',color:'var(--c-amber)'},
+  {label:'Memory',sub:'vectors',color:'var(--c-sky)'},
+  {label:'Agents',sub:'identity',color:'var(--c-violet)'},
+  {label:'Filters',sub:'telemetry',color:'var(--c-coral)'},
+]);
+const slides=[...stage.children],nodes=[...rail.children];
+function go(i){
+  cur=Math.max(0,Math.min(S.length-1,i));
+  slides.forEach((el,x)=>el.classList.toggle('on',x===cur));
+  nodes.forEach((el,x)=>el.classList.toggle('on',x===cur));
+  klabel.textContent=String(cur+1).padStart(2,'0')+' / '+S.length;
+  fill.style.width=((cur+1)/S.length*100)+'%';
+  document.querySelector('.deck-inner').style.setProperty('--acc',S[cur].acc);
+  document.querySelector('.topline').style.setProperty('--acc',S[cur].acc);
+  document.querySelector('.bbar').style.setProperty('--acc',S[cur].acc);
+  prev.disabled=cur===0; next.disabled=cur===S.length-1;
+}
+prev.addEventListener('click',()=>go(cur-1));
+next.addEventListener('click',()=>go(cur+1));
+window.addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){ e.preventDefault(); go(cur+1); }
+  if(['ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); go(cur-1); }
+  if(e.key==='Home') go(0); if(e.key==='End') go(S.length-1);
+});
+let tx=null;
+window.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+window.addEventListener('touchend',e=>{ if(tx===null)return; const d=e.changedTouches[0].clientX-tx; if(Math.abs(d)>60) go(cur+(d<0?1:-1)); tx=null; },{passive:true});
+
+/* SCALE fixed canvas to viewport */
+const deck=document.getElementById('deck');
+function scale(){
+  const s=Math.min(window.innerWidth/1280, window.innerHeight/720)*0.98;
+  deck.style.setProperty('--s', s);
+}
+window.addEventListener('resize',scale); scale();
+go(0);
+
+/* TODAY'S DATE — filled in at load time, so it matches whenever this is shown */
+(function(){
+  const el=document.getElementById('todayDate');
+  if(el) el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+})();
+
+/* AMBIENT CIRCUIT CANVAS */
+(function(){
+  const cv=document.getElementById('circuit'),ctx=cv.getContext('2d');
+  const rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let w,h,tr=[]; const H=['--c-amber','--c-teal','--c-violet','--c-coral','--c-sky','--c-lime'];
+  function tk(){ const cs=getComputedStyle(document.documentElement); const t={}; H.forEach(k=>t[k]=cs.getPropertyValue(k).trim()); return t; }
+  function build(){ const c=Math.max(6,Math.floor(w/130)),r=Math.max(4,Math.floor(h/130)); tr=[];
+    for(let i=0;i<c*r*0.14;i++){ const gx=Math.floor(Math.random()*c)*(w/c),gy=Math.floor(Math.random()*r)*(h/r);
+      const sg=2+Math.floor(Math.random()*3); const p=[[gx,gy]]; let x=gx,y=gy;
+      for(let s=0;s<sg;s++){ if(Math.random()>0.5)x+=(Math.random()>0.5?1:-1)*(w/c); else y+=(Math.random()>0.5?1:-1)*(h/r); p.push([x,y]); }
+      tr.push({p,hue:H[Math.floor(Math.random()*H.length)],ph:Math.random()*Math.PI*2}); } }
+  function rs(){ w=cv.width=window.innerWidth; h=cv.height=window.innerHeight; build(); }
+  window.addEventListener('resize',rs); rs();
+  function draw(t){ const c=tk(); ctx.clearRect(0,0,w,h);
+    tr.forEach(o=>{ const g=rm?0.4:(0.28+0.24*Math.sin(t/2600+o.ph));
+      ctx.beginPath(); o.p.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+      ctx.strokeStyle=c[o.hue]; ctx.globalAlpha=g*0.5; ctx.lineWidth=1; ctx.stroke();
+      const [lx,ly]=o.p[o.p.length-1]; ctx.beginPath(); ctx.arc(lx,ly,2,0,Math.PI*2); ctx.fillStyle=c[o.hue]; ctx.globalAlpha=g; ctx.fill(); });
+    ctx.globalAlpha=1; if(!rm) requestAnimationFrame(draw); }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

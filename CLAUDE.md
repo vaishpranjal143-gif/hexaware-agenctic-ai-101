@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Confidential: instructor-only assessments (never push to GitHub)
+
+This repository is shared with **students**. The `hexaware-assessment/` folder holds the
+instructor assessment papers (`hexaware-assessment-1.docx`, `hexaware-assessment-2.docx`,
+answer keys, etc.) and **must never be committed, pushed, or otherwise exposed to students**.
+Both the folder and any `hexaware-assessment-*.docx` file at the repo root are gitignored.
+
+Rules:
+- Always create/edit assessment material **inside `hexaware-assessment/`**, never at the repo root.
+- Never run `git add -f`, `git rm` the ignore rule, or otherwise force-track these files.
+- Assessment 1 covers **Days 1–6**; Assessment 2 covers **Days 7–12**.
+
 ## What this repo is
 
 A 92-hour training program on Agentic AI and Microsoft Foundry (formerly Azure AI Foundry). It is **not a single application** — it is a chronological collection of self-contained lesson artifacts organized as `day-01/` … `day-12/`. Each day is independent; there is no shared library imported across days. `main.py` at the root is a throwaway stub, not an entry point for the lessons.

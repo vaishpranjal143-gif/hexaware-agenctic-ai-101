@@ -218,3 +218,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 models
+
+# Instructor-only assessments — must NEVER be pushed to GitHub / shared with students.
+# Keep BOTH the folder and the standalone .docx files ignored.
+hexaware-assessment/
+hexaware-assessment-*.docx
