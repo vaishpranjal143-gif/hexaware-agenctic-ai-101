@@ -1,0 +1,62 @@
+{
+  "A1001": {
+    "customer": "Riya Sharma",
+    "customer_id": "CUST-RIYA",
+    "items": ["NimbusBook Air 14"],
+    "status": "shipped",
+    "total_inr": 78999.0,
+    "refund_due_usd": 0.0,
+    "placed_on": "2026-06-28",
+    "tracking": "IN-SHIP-88213"
+  },
+  "A1002": {
+    "customer": "Arjun Mehta",
+    "customer_id": "CUST-ARJUN",
+    "items": ["NimbusPhone 12", "NimbusBuds Pro"],
+    "status": "processing",
+    "total_inr": 48998.0,
+    "refund_due_usd": 0.0,
+    "placed_on": "2026-07-08",
+    "tracking": null
+  },
+  "A1003": {
+    "customer": "Kavya Iyer",
+    "customer_id": "CUST-KAVYA",
+    "items": ["NimbusFridge 400L"],
+    "status": "delivered",
+    "total_inr": 42999.0,
+    "refund_due_usd": 0.0,
+    "placed_on": "2026-06-10",
+    "tracking": "IN-SHIP-71190"
+  },
+  "A1004": {
+    "customer": "Dev Patel",
+    "customer_id": "CUST-DEV",
+    "items": ["NimbusTV 55\" 4K"],
+    "status": "return_approved",
+    "total_inr": 54999.0,
+    "refund_due_usd": 592.46,
+    "placed_on": "2026-05-30",
+    "tracking": "IN-SHIP-65502"
+  },
+  "A1005": {
+    "customer": "Sara Khan",
+    "customer_id": "CUST-SARA",
+    "items": ["NimbusWatch SE"],
+    "status": "delivered",
+    "total_inr": 12999.0,
+    "refund_due_usd": 0.0,
+    "placed_on": "2026-06-20",
+    "tracking": "IN-SHIP-70044"
+  },
+  "A1006": {
+    "customer": "Rohan Gupta",
+    "customer_id": "CUST-ROHAN",
+    "items": ["NimbusBook Pro 16"],
+    "status": "cancelled",
+    "total_inr": 145999.0,
+    "refund_due_usd": 1749.99,
+    "placed_on": "2026-07-01",
+    "tracking": null
+  }
+}

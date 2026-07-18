@@ -218,3 +218,17 @@ __marimo__/
 .streamlit/secrets.toml
 
 models
+
+# Node.js / frontend build artifacts (day-13 and any JS/TS lessons)
+node_modules/
+.vite/
+dist/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Instructor-only assessments — must NEVER be pushed to GitHub / shared with students.
+# Keep BOTH the folder and the standalone .docx files ignored.
+hexaware-assessment/
+hexaware-assessment-*.docx

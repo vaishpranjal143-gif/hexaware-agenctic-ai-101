@@ -1,0 +1,38 @@
+{
+  "riya": {
+    "password": "riya123",
+    "role": "customer",
+    "customer_id": "CUST-RIYA",
+    "display_name": "Riya Sharma"
+  },
+  "arjun": {
+    "password": "arjun123",
+    "role": "customer",
+    "customer_id": "CUST-ARJUN",
+    "display_name": "Arjun Mehta"
+  },
+  "kavya": {
+    "password": "kavya123",
+    "role": "customer",
+    "customer_id": "CUST-KAVYA",
+    "display_name": "Kavya Iyer"
+  },
+  "admin": {
+    "password": "admin123",
+    "role": "admin",
+    "customer_id": null,
+    "display_name": "NimbusMart Admin"
+  },
+  "manager": {
+    "password": "manager123",
+    "role": "manager",
+    "customer_id": null,
+    "display_name": "Store Manager"
+  },
+  "sales": {
+    "password": "sales123",
+    "role": "salesperson",
+    "customer_id": null,
+    "display_name": "Sales Associate"
+  }
+}
