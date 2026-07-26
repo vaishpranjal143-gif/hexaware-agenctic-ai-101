@@ -6,6 +6,7 @@ def chatbot(message):
     else:
         return "I don't understand."
 
+# chatbot session
 while True:
     user_input = input("You: ")
 
