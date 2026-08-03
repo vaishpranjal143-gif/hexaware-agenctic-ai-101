@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "accelerate>=1.14.0",
+    "agent-framework-core>=1.13.0",
+    "agent-framework-openai>=1.12.0",
     "autogen>=0.14.1",
     "autogen-agentchat>=0.7.5",
     "autogen-ext>=0.7.5",
@@ -21,6 +23,7 @@ dependencies = [
     "langchain-community>=0.4.2",
     "langchain-text-splitters>=1.1.2",
     "matplotlib>=3.11.0",
+    "mcp<2",
     "ollama>=0.6.2",
     "openai>=2.44.0",
     "pydantic>=2.13.4,<2.14",
