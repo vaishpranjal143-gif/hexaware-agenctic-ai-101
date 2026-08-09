@@ -7,7 +7,7 @@ SPANS = InMemorySpanExporter()
 configure_otel_providers(exporters=[SPANS])
 
 import gradio as gr
-from _shop import BACKEND, MODEL, RATES, RATES_SOURCE, history_to_messages, support_agent, usage
+from _shop import BACKEND, MODEL, history_to_messages, support_agent, usage
 
 AGENT, SPENT = support_agent(), {"usd": 0.0, "turns": 0, "in": 0, "out": 0}
 
