@@ -22,6 +22,7 @@ dependencies = [
     "langchain-cerebras>=0.8.2",
     "langchain-community>=0.4.2",
     "langchain-text-splitters>=1.1.2",
+    "langfuse>=4.14.4",
     "matplotlib>=3.11.0",
     "mcp<2",
     "ollama>=0.6.2",
